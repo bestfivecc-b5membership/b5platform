@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>B5 Asset Library</title>
+<title>B5 Asset Library V4</title>
 
 <style>
 
@@ -16,12 +16,7 @@ font-family:Arial,sans-serif;
 }
 
 body{
-background:linear-gradient(
-135deg,
-#f7f1e8,
-#efe4d3,
-#e5d5bf
-);
+background:linear-gradient(135deg,#f7f1e8,#efe4d3,#e5d5bf);
 padding:30px;
 color:#5e4630;
 min-height:100vh;
@@ -34,11 +29,11 @@ margin-bottom:30px;
 
 .header h1{
 font-size:42px;
-margin-bottom:10px;
 }
 
 .header p{
 color:#82654a;
+margin-top:5px;
 }
 
 .search{
@@ -55,20 +50,17 @@ font-size:15px;
 }
 
 .section{
-margin-bottom:50px;
+margin-bottom:45px;
 }
 
 .section-title{
-font-size:24px;
+font-size:22px;
 font-weight:bold;
 margin-bottom:15px;
-padding-bottom:8px;
-border-bottom:2px solid rgba(94,70,48,.15);
 }
 
 .count{
-font-size:14px;
-font-weight:normal;
+font-size:13px;
 color:#82654a;
 margin-left:8px;
 }
@@ -76,34 +68,35 @@ margin-left:8px;
 .grid{
 display:grid;
 grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-gap:18px;
+gap:16px;
 }
 
 .card{
-background:white;
-border-radius:20px;
+background:#fff;
+border-radius:18px;
 overflow:hidden;
 box-shadow:0 10px 25px rgba(0,0,0,.08);
-transition:.25s;
+transition:.2s;
 }
 
 .card:hover{
-transform:translateY(-5px);
+transform:translateY(-4px);
 }
 
 .card img{
 width:100%;
-height:180px;
+height:170px;
 object-fit:cover;
 display:block;
+background:#f3f3f3;
 }
 
 .info{
-padding:15px;
+padding:12px;
 }
 
 .filename{
-font-size:13px;
+font-size:12px;
 font-weight:bold;
 margin-bottom:10px;
 word-break:break-word;
@@ -111,12 +104,13 @@ word-break:break-word;
 
 .btn{
 width:100%;
-padding:10px;
+padding:9px;
 border:none;
 border-radius:10px;
 cursor:pointer;
 background:#6b4e36;
-color:white;
+color:#fff;
+font-size:12px;
 }
 
 .btn:hover{
@@ -126,45 +120,34 @@ opacity:.9;
 .loading{
 text-align:center;
 padding:40px;
-font-size:18px;
 }
 
 .footer{
 text-align:center;
-margin-top:50px;
-font-size:13px;
+margin-top:40px;
+font-size:12px;
 color:#82654a;
-}
-
-.hidden{
-display:none;
 }
 
 </style>
 </head>
+
 <body>
 
 <div class="header">
 <h1>🖼️ B5 Asset Library</h1>
-<p>Auto Sync from GitHub Repository</p>
+<p>GitHub → Cloudflare Auto Sync (Stable V4)</p>
 </div>
 
 <div class="search">
-<input
-type="text"
-id="search"
-placeholder="Search images..."
-onkeyup="filterImages()">
+<input id="search" placeholder="Search assets..." onkeyup="filter()">
 </div>
 
-<div id="loading" class="loading">
-Loading Assets...
-</div>
-
+<div id="loading" class="loading">Loading...</div>
 <div id="content"></div>
 
 <div class="footer">
-B5 Asset Library © 2026
+B5 Platform Assets © 2026
 </div>
 
 <script>
@@ -173,100 +156,49 @@ const OWNER = "bestfivecc-b5membership";
 const REPO = "b5platform";
 
 const CATEGORIES = [
-
-{
-folder:"food",
-title:"🍔 Food"
-},
-
-{
-folder:"rewards",
-title:"🎁 Rewards"
-},
-
-{
-folder:"promo",
-title:"🔥 Promotions"
-},
-
-{
-folder:"logos",
-title:"🏷 Logos"
-},
-
-{
-folder:"wheel",
-title:"🎡 Wheel"
-},
-
-{
-folder:"birthday",
-title:"🎂 Birthday"
-},
-
-{
-folder:"voucher",
-title:"🎟 Voucher"
-},
-
-{
-folder:"images",
-title:"📦 Misc Images"
-},
-
-{
-folder:"archive",
-title:"🗄 Archive"
-}
-
+{folder:"food",title:"🍔 Food"},
+{folder:"rewards",title:"🎁 Rewards"},
+{folder:"promo",title:"🔥 Promo"},
+{folder:"logos",title:"🏷 Logos"},
+{folder:"wheel",title:"🎡 Wheel"},
+{folder:"birthday",title:"🎂 Birthday"},
+{folder:"voucher",title:"🎟 Voucher"},
+{folder:"images",title:"📦 Images"},
+{folder:"archive",title:"🗄 Archive"}
 ];
 
-const content = document.getElementById("content");
+function getUrl(folder,file){
+return `https://app.b5membership.com/assets/${folder}/${file}?v=${Date.now()}`;
+}
 
-async function loadAssets(){
+async function loadAll(){
 
-for(const category of CATEGORIES){
-
-await loadCategory(category);
-
+for(let c of CATEGORIES){
+await loadCategory(c);
 }
 
 document.getElementById("loading").style.display="none";
-
 }
 
-async function loadCategory(category){
+async function loadCategory(cat){
 
 try{
 
-const api =
-`https://api.github.com/repos/${OWNER}/${REPO}/contents/assets/${category.folder}`;
+const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/assets/${cat.folder}`;
 
-const response = await fetch(api);
+const res = await fetch(api);
+const data = await res.json();
 
-const files = await response.json();
-
-const images = files.filter(file => {
-
-const name = file.name.toLowerCase();
-
-return (
-name.endsWith(".png") ||
-name.endsWith(".jpg") ||
-name.endsWith(".jpeg") ||
-name.endsWith(".webp") ||
-name.endsWith(".gif")
+const images = data.filter(f=>
+f.name.match(/\.(png|jpg|jpeg|webp|gif)$/i)
 );
 
-});
-
 const section = document.createElement("div");
+section.className="section";
 
-section.className = "section";
-
-section.innerHTML = `
+section.innerHTML=`
 <div class="section-title">
-${category.title}
+${cat.title}
 <span class="count">(${images.length})</span>
 </div>
 <div class="grid"></div>
@@ -276,93 +208,47 @@ const grid = section.querySelector(".grid");
 
 images.forEach(file=>{
 
-const imageUrl =
-`${window.location.origin}/assets/${category.folder}/${file.name}`;
+const url = getUrl(cat.folder,file.name);
+
+const fallback = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/assets/${cat.folder}/${file.name}`;
 
 const card = document.createElement("div");
+card.className="card";
 
-card.className = "card asset-card";
-
-card.setAttribute(
-"data-name",
-file.name.toLowerCase()
-);
-
-card.innerHTML = `
-<img src="${imageUrl}" loading="lazy">
+card.innerHTML=`
+<img src="${url}"
+onerror="this.src='${fallback}'">
 
 <div class="info">
-
-<div class="filename">
-${file.name}
-</div>
-
-<button
-class="btn"
-onclick="copyUrl('${imageUrl}')">
-Copy URL
-</button>
-
+<div class="filename">${file.name}</div>
+<button class="btn" onclick="copy('${url}')">Copy URL</button>
 </div>
 `;
 
 grid.appendChild(card);
-
 });
 
-content.appendChild(section);
+document.getElementById("content").appendChild(section);
 
-}catch(err){
-
-console.error(
-"Error loading",
-category.folder,
-err
-);
-
+}catch(e){
+console.log("error",cat.folder,e);
 }
 
 }
 
-function copyUrl(url){
-
-navigator.clipboard.writeText(url);
-
-alert("Copied URL:\n\n" + url);
-
+function copy(text){
+navigator.clipboard.writeText(text);
+alert("Copied:\n"+text);
 }
 
-function filterImages(){
-
-const keyword =
-document
-.getElementById("search")
-.value
-.toLowerCase();
-
-const cards =
-document.querySelectorAll(".asset-card");
-
-cards.forEach(card=>{
-
-const filename =
-card.getAttribute("data-name");
-
-if(filename.includes(keyword)){
-
-card.style.display="block";
-
-}else{
-
-card.style.display="none";
-
-}
-
+function filter(){
+let v=document.getElementById("search").value.toLowerCase();
+document.querySelectorAll(".card").forEach(c=>{
+c.style.display=c.innerText.toLowerCase().includes(v)?"block":"none";
 });
-
 }
 
-loadAssets();
+loadAll();
 
 </script>
 
