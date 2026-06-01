@@ -62,58 +62,63 @@ margin-bottom:8px;
 
 async function search(){
 
-let phone=document.getElementById("phone").value;
-let email=document.getElementById("email").value;
+let phone=document.getElementById("phone").value.trim();
+let email=document.getElementById("email").value.trim();
 
-let url=`/YOUR_APPS_SCRIPT_URL?type=member`;
-
-if(phone) url+=`&phone=${phone}`;
-if(email) url+=`&email=${email}`;
-
-let res=await fetch(url);
-let data=await res.json();
-
-if(data.status!=="ok"){
-document.getElementById("result").innerHTML="Not found";
+if(!phone && !email){
+alert("Enter phone or email");
 return;
 }
 
-let m=data.data;
+let url = "YOUR_APPS_SCRIPT_URL" + "?mode=member";
 
-document.getElementById("result").innerHTML=`
+if(phone){
+url += "&phone=" + encodeURIComponent(phone);
+}
 
+if(email){
+url += "&email=" + encodeURIComponent(email);
+}
+
+let res = await fetch(url);
+let data = await res.json();
+
+console.log(data);
+
+if(data.status !== "ok"){
+document.getElementById("result").innerHTML =
+"No member found";
+return;
+}
+
+let m = data.data;
+
+document.getElementById("result").innerHTML = `
 <div class="box">
-<div class="section-title">Profile</div>
-Name: ${m.profile.name}<br>
-Phone: ${m.profile.phone}<br>
-Email: ${m.profile.email}
+<b>Name:</b> ${m.profile.name}<br>
+<b>Phone:</b> ${m.profile.phone}<br>
+<b>Email:</b> ${m.profile.email}
 </div>
 
 <div class="box">
-<div class="section-title">Points</div>
-Balance: ${m.points.balance}
+<b>Points:</b> ${m.points.balance}
 </div>
 
 <div class="box">
-<div class="section-title">Reward</div>
-${m.reward.lastReward} (${m.reward.status})
+<b>Reward:</b> ${m.reward.lastReward} (${m.reward.status})
 </div>
 
 <div class="box">
-<div class="section-title">Birthday</div>
-${m.birthday.status}
+<b>Birthday:</b> ${m.birthday.status}
 </div>
 
 <div class="box">
-<div class="section-title">Promo</div>
-${m.promo.status}
+<b>Promo:</b> ${m.promo.status}
 </div>
 
 <div class="box">
-<div class="section-title">Referral</div>
-${m.referral.referredBy || "-"}
+<b>Referral:</b> ${m.referral.referredBy || "-"}
 </div>
-
 `;
 
 }
