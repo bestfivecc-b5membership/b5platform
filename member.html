@@ -3,52 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Member Center</title>
+<title>Member Dashboard</title>
 
 <style>
 body{
 font-family:Arial;
 background:#f7f1e8;
-padding:30px;
+padding:20px;
 color:#5e4630;
 }
 
-.card{
-background:rgba(255,255,255,0.7);
+.box{
+background:white;
 padding:20px;
-border-radius:18px;
+border-radius:16px;
 margin-bottom:15px;
-backdrop-filter:blur(10px);
+box-shadow:0 10px 20px rgba(0,0,0,0.08);
 }
 
-h2{margin-bottom:15px;}
-.small{font-size:13px;color:#7b6247;}
+input{
+width:100%;
+padding:12px;
+margin-bottom:10px;
+border-radius:10px;
+border:1px solid #ddd;
+}
+
+button{
+padding:10px;
+border:none;
+background:#6b4e36;
+color:white;
+border-radius:10px;
+cursor:pointer;
+width:100%;
+}
+
+.section-title{
+font-weight:bold;
+margin-bottom:8px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>👤 Member Center</h2>
+<div class="box">
+<h2>👤 Member Lookup</h2>
 
-<div class="card">
-<b>Points Balance</b>
-<div class="small">0 pts (connect later to Apps Script)</div>
+<input id="phone" placeholder="Phone Number">
+<input id="email" placeholder="Email">
+<button onclick="search()">Search</button>
 </div>
 
-<div class="card">
-<b>Member Status</b>
-<div class="small">Standard Member</div>
+<div id="result"></div>
+
+<script>
+
+async function search(){
+
+let phone=document.getElementById("phone").value;
+let email=document.getElementById("email").value;
+
+let url=`/YOUR_APPS_SCRIPT_URL?type=member`;
+
+if(phone) url+=`&phone=${phone}`;
+if(email) url+=`&email=${email}`;
+
+let res=await fetch(url);
+let data=await res.json();
+
+if(data.status!=="ok"){
+document.getElementById("result").innerHTML="Not found";
+return;
+}
+
+let m=data.data;
+
+document.getElementById("result").innerHTML=`
+
+<div class="box">
+<div class="section-title">Profile</div>
+Name: ${m.profile.name}<br>
+Phone: ${m.profile.phone}<br>
+Email: ${m.profile.email}
 </div>
 
-<div class="card">
-<b>Referral Code</b>
-<div class="small">B5-XXXX (auto later)</div>
+<div class="box">
+<div class="section-title">Points</div>
+Balance: ${m.points.balance}
 </div>
 
-<div class="card">
-<b>Reward History</b>
-<div class="small">No data yet</div>
+<div class="box">
+<div class="section-title">Reward</div>
+${m.reward.lastReward} (${m.reward.status})
 </div>
+
+<div class="box">
+<div class="section-title">Birthday</div>
+${m.birthday.status}
+</div>
+
+<div class="box">
+<div class="section-title">Promo</div>
+${m.promo.status}
+</div>
+
+<div class="box">
+<div class="section-title">Referral</div>
+${m.referral.referredBy || "-"}
+</div>
+
+`;
+
+}
+
+</script>
 
 </body>
 </html>
