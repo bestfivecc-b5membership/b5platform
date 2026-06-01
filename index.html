@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
 <title>B5 Platform</title>
 
 <style>
@@ -23,42 +22,43 @@ color:#5e4630;
 }
 
 .container{
-max-width:1200px;
+max-width:1100px;
 margin:auto;
 }
 
 .header{
 text-align:center;
-margin-bottom:50px;
+margin-bottom:40px;
 }
 
 .logo{
-font-size:50px;
-margin-bottom:10px;
+font-size:42px;
 }
 
 .title{
-font-size:48px;
-font-weight:bold;
-margin-bottom:8px;
+font-size:42px;
+font-weight:700;
+margin-top:10px;
 }
 
 .subtitle{
-font-size:16px;
+font-size:14px;
 color:#82654a;
+margin-top:6px;
 }
 
 .grid{
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-gap:25px;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:20px;
+margin-top:30px;
 }
 
 .card{
 background:rgba(255,255,255,0.65);
-backdrop-filter:blur(10px);
-border-radius:24px;
-padding:30px;
+backdrop-filter:blur(12px);
+border-radius:22px;
+padding:24px;
 text-decoration:none;
 color:#5e4630;
 transition:0.25s;
@@ -67,17 +67,30 @@ box-shadow:0 10px 25px rgba(0,0,0,0.06);
 
 .card:hover{
 transform:translateY(-6px);
-box-shadow:0 18px 40px rgba(0,0,0,0.12);
+box-shadow:0 20px 40px rgba(0,0,0,0.12);
 }
 
-.icon{font-size:42px;margin-bottom:15px;}
-.card-title{font-size:22px;font-weight:700;margin-bottom:10px;}
-.card-text{font-size:14px;color:#7b6247;line-height:1.6;}
+.icon{
+font-size:34px;
+margin-bottom:10px;
+}
+
+.card-title{
+font-size:20px;
+font-weight:700;
+margin-bottom:6px;
+}
+
+.card-text{
+font-size:13px;
+color:#7b6247;
+line-height:1.5;
+}
 
 .footer{
 text-align:center;
-margin-top:60px;
-font-size:13px;
+margin-top:50px;
+font-size:12px;
 color:#82654a;
 }
 
@@ -91,45 +104,39 @@ color:#82654a;
 <div class="header">
 <div class="logo">☕</div>
 <div class="title">B5 Platform</div>
-<div class="subtitle">Membership • Rewards • Promotions • Administration</div>
+<div class="subtitle">Membership • Rewards • Assets • Promotions • Admin</div>
 </div>
 
 <div class="grid">
 
-<a href="signup.html" class="card">
+<a class="card" href="spin.html">
 <div class="icon">🎯</div>
-<div class="card-title">Membership Signup</div>
-<div class="card-text">Join Membership, Spin & Win rewards and benefits.</div>
+<div class="card-title">Spin & Win</div>
+<div class="card-text">Try your luck and win rewards instantly.</div>
 </a>
 
-<a href="member.html" class="card">
+<a class="card" href="member.html">
 <div class="icon">👤</div>
-<div class="card-title">Member Portal</div>
-<div class="card-text">View points, rewards and status.</div>
+<div class="card-title">Member Center</div>
+<div class="card-text">View points, status and reward history.</div>
 </a>
 
-<a href="rewards.html" class="card">
-<div class="icon">🎁</div>
-<div class="card-title">Rewards Gallery</div>
-<div class="card-text">Browse redeemable items.</div>
+<a class="card" href="assets.html">
+<div class="icon">🖼️</div>
+<div class="card-title">Asset Library</div>
+<div class="card-text">Browse and copy image URLs easily.</div>
 </a>
 
-<a href="promo.html" class="card">
+<a class="card" href="promo.html">
 <div class="icon">🔥</div>
 <div class="card-title">Promotions</div>
 <div class="card-text">Latest campaigns and offers.</div>
 </a>
 
-<a href="admin.html" class="card">
+<a class="card" href="admin.html">
 <div class="icon">📊</div>
-<div class="card-title">Admin Dashboard</div>
-<div class="card-text">Management tools and reports.</div>
-</a>
-
-<a href="assets.html" class="card">
-<div class="icon">🖼️</div>
-<div class="card-title">Asset Library</div>
-<div class="card-text">Images, logos and marketing assets.</div>
+<div class="card-title">Admin Panel</div>
+<div class="card-text">Manage members and system data.</div>
 </a>
 
 </div>
