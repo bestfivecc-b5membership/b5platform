@@ -33,7 +33,7 @@ margin-bottom:30px;
 }
 
 .header h1{
-font-size:40px;
+font-size:42px;
 margin-bottom:10px;
 }
 
@@ -43,7 +43,7 @@ color:#82654a;
 
 .search{
 max-width:500px;
-margin:20px auto;
+margin:20px auto 40px;
 }
 
 .search input{
@@ -54,23 +54,41 @@ border-radius:14px;
 font-size:15px;
 }
 
+.section{
+margin-bottom:50px;
+}
+
+.section-title{
+font-size:24px;
+font-weight:bold;
+margin-bottom:15px;
+padding-bottom:8px;
+border-bottom:2px solid rgba(94,70,48,.15);
+}
+
+.count{
+font-size:14px;
+font-weight:normal;
+color:#82654a;
+margin-left:8px;
+}
+
 .grid{
 display:grid;
-grid-template-columns:
-repeat(auto-fill,minmax(220px,1fr));
-gap:20px;
+grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+gap:18px;
 }
 
 .card{
 background:white;
 border-radius:20px;
 overflow:hidden;
-box-shadow:0 10px 25px rgba(0,0,0,0.08);
+box-shadow:0 10px 25px rgba(0,0,0,.08);
 transition:.25s;
 }
 
 .card:hover{
-transform:translateY(-4px);
+transform:translateY(-5px);
 }
 
 .card img{
@@ -85,7 +103,7 @@ padding:15px;
 }
 
 .filename{
-font-size:14px;
+font-size:13px;
 font-weight:bold;
 margin-bottom:10px;
 word-break:break-word;
@@ -101,11 +119,8 @@ background:#6b4e36;
 color:white;
 }
 
-.footer{
-text-align:center;
-margin-top:40px;
-font-size:13px;
-color:#82654a;
+.btn:hover{
+opacity:.9;
 }
 
 .loading{
@@ -114,28 +129,39 @@ padding:40px;
 font-size:18px;
 }
 
+.footer{
+text-align:center;
+margin-top:50px;
+font-size:13px;
+color:#82654a;
+}
+
+.hidden{
+display:none;
+}
+
 </style>
 </head>
 <body>
 
 <div class="header">
-<h1>🖼️ Asset Library</h1>
-<p>Auto Sync From GitHub Images Folder</p>
+<h1>🖼️ B5 Asset Library</h1>
+<p>Auto Sync from GitHub Repository</p>
 </div>
 
 <div class="search">
 <input
 type="text"
 id="search"
-placeholder="Search image..."
+placeholder="Search images..."
 onkeyup="filterImages()">
 </div>
 
 <div id="loading" class="loading">
-Loading images...
+Loading Assets...
 </div>
 
-<div class="grid" id="gallery"></div>
+<div id="content"></div>
 
 <div class="footer">
 B5 Asset Library © 2026
@@ -145,41 +171,122 @@ B5 Asset Library © 2026
 
 const OWNER = "bestfivecc-b5membership";
 const REPO = "b5platform";
-const FOLDER = "assets/images";
 
-const gallery = document.getElementById("gallery");
+const CATEGORIES = [
 
-async function loadImages(){
+{
+folder:"food",
+title:"🍔 Food"
+},
+
+{
+folder:"rewards",
+title:"🎁 Rewards"
+},
+
+{
+folder:"promo",
+title:"🔥 Promotions"
+},
+
+{
+folder:"logos",
+title:"🏷 Logos"
+},
+
+{
+folder:"wheel",
+title:"🎡 Wheel"
+},
+
+{
+folder:"birthday",
+title:"🎂 Birthday"
+},
+
+{
+folder:"voucher",
+title:"🎟 Voucher"
+},
+
+{
+folder:"images",
+title:"📦 Misc Images"
+},
+
+{
+folder:"archive",
+title:"🗄 Archive"
+}
+
+];
+
+const content = document.getElementById("content");
+
+async function loadAssets(){
+
+for(const category of CATEGORIES){
+
+await loadCategory(category);
+
+}
+
+document.getElementById("loading").style.display="none";
+
+}
+
+async function loadCategory(category){
 
 try{
 
 const api =
-`https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}`;
+`https://api.github.com/repos/${OWNER}/${REPO}/contents/assets/${category.folder}`;
 
 const response = await fetch(api);
 
 const files = await response.json();
 
-document.getElementById("loading").style.display="none";
+const images = files.filter(file => {
 
-files.forEach(file=>{
+const name = file.name.toLowerCase();
 
-const ext = file.name.toLowerCase();
+return (
+name.endsWith(".png") ||
+name.endsWith(".jpg") ||
+name.endsWith(".jpeg") ||
+name.endsWith(".webp") ||
+name.endsWith(".gif")
+);
 
-if(
-ext.endsWith(".png") ||
-ext.endsWith(".jpg") ||
-ext.endsWith(".jpeg") ||
-ext.endsWith(".webp") ||
-ext.endsWith(".gif")
-){
+});
+
+const section = document.createElement("div");
+
+section.className = "section";
+
+section.innerHTML = `
+<div class="section-title">
+${category.title}
+<span class="count">(${images.length})</span>
+</div>
+<div class="grid"></div>
+`;
+
+const grid = section.querySelector(".grid");
+
+images.forEach(file=>{
 
 const imageUrl =
-`https://app.b5membership.com/assets/images/${file.name}`;
+`${window.location.origin}/assets/${category.folder}/${file.name}`;
 
 const card = document.createElement("div");
 
-card.className = "card";
+card.className = "card asset-card";
+
+card.setAttribute(
+"data-name",
+file.name.toLowerCase()
+);
 
 card.innerHTML = `
 <img src="${imageUrl}" loading="lazy">
@@ -190,7 +297,8 @@ card.innerHTML = `
 ${file.name}
 </div>
 
-<button class="btn"
+<button
+class="btn"
 onclick="copyUrl('${imageUrl}')">
 Copy URL
 </button>
@@ -198,18 +306,19 @@ Copy URL
 </div>
 `;
 
-gallery.appendChild(card);
-
-}
+grid.appendChild(card);
 
 });
 
+content.appendChild(section);
+
 }catch(err){
 
-document.getElementById("loading").innerHTML =
-"Unable to load images.";
-
-console.error(err);
+console.error(
+"Error loading",
+category.folder,
+err
+);
 
 }
 
@@ -219,37 +328,41 @@ function copyUrl(url){
 
 navigator.clipboard.writeText(url);
 
-alert("Copied URL:\\n\\n" + url);
+alert("Copied URL:\n\n" + url);
 
 }
 
 function filterImages(){
 
 const keyword =
-document.getElementById("search")
+document
+.getElementById("search")
 .value
 .toLowerCase();
 
 const cards =
-document.querySelectorAll(".card");
+document.querySelectorAll(".asset-card");
 
 cards.forEach(card=>{
 
-const text =
-card.querySelector(".filename")
-.innerText
-.toLowerCase();
+const filename =
+card.getAttribute("data-name");
 
-card.style.display =
-text.includes(keyword)
-? "block"
-: "none";
+if(filename.includes(keyword)){
+
+card.style.display="block";
+
+}else{
+
+card.style.display="none";
+
+}
 
 });
 
 }
 
-loadImages();
+loadAssets();
 
 </script>
 
