@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Member Dashboard V3</title>
+<title>Member Dashboard V3 FINAL</title>
 
 <style>
 
@@ -68,19 +68,36 @@ cursor:pointer;
 font-weight:bold;
 }
 
-.hidden{display:none;}
+.hidden{
+display:none;
+}
+
+.loading{
+text-align:center;
+padding:20px;
+font-weight:bold;
+}
+
+.copy-btn{
+margin-top:6px;
+padding:6px;
+font-size:12px;
+background:#444;
+}
 
 </style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="box" id="searchBox">
+
 <h2>👤 Member Lookup</h2>
 
 <input id="phone" placeholder="Phone Number">
 <input id="email" placeholder="Email">
 <button onclick="search()">Search</button>
+
 </div>
 
 <div id="result"></div>
@@ -89,11 +106,21 @@ font-weight:bold;
 
 function toggle(id){
 const el=document.getElementById(id);
-el.style.display = el.style.display==="none"?"block":"none";
+if(!el) return;
+el.classList.toggle("hidden");
 }
 
 // =====================
-// REDEEM CALL
+// COPY
+// =====================
+
+function copyText(text){
+navigator.clipboard.writeText(text);
+alert("Copied");
+}
+
+// =====================
+// REDEEM
 // =====================
 
 async function redeem(phone, reward, points){
@@ -105,13 +132,12 @@ const url =
 + "&reward=" + encodeURIComponent(reward)
 + "&points=" + encodeURIComponent(points);
 
-let res = await fetch(url);
-let data = await res.json();
+let res=await fetch(url);
+let data=await res.json();
 
-alert(
-data.status === "ok"
-? "Redeemed! Remaining: " + data.remaining
-: "Failed: " + data.status
+alert(data.status==="ok"
+? "Redeemed! Remaining: "+data.remaining
+: "Failed: "+data.status
 );
 
 search();
@@ -168,6 +194,9 @@ alert("Enter phone or email");
 return;
 }
 
+document.getElementById("result").innerHTML=
+"<div class='loading'>Searching...</div>";
+
 let url="https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=member";
 
 if(phone) url+="&phone="+phone;
@@ -177,51 +206,50 @@ let res=await fetch(url);
 let data=await res.json();
 
 if(data.status!=="ok"){
-document.getElementById("result").innerHTML="<div class='box'>No member</div>";
+document.getElementById("result").innerHTML=
+"<div class='box'>No member found</div>";
 return;
 }
 
+document.getElementById("searchBox").style.display="none";
+
 let m=data.data;
+
+function tokenBlock(label, token){
+if(!token) return "-";
+return token + 
+`<button class="copy-btn" onclick="copyText('${token}')">Copy</button>`;
+}
 
 document.getElementById("result").innerHTML=`
 
 <div class="box">
-
-<div class="click" onclick="toggle('profile')">
-👤 Profile ▶
+<button onclick="location.reload()">🔍 New Search</button>
 </div>
 
-<div id="profile" class="hidden">
+<div class="box">
 
-Name: ${m.profile.name}<br>
-Phone: ${m.profile.phone}<br>
-Email: ${m.profile.email}<br>
-Birthday: ${m.profile.birthday}<br>
-Member Since: ${m.profile.memberSince}
+<h2>${m.profile.name}</h2>
 
-</div>
+${m.profile.phone}<br>
+${m.profile.email}
 
 </div>
 
 <div class="box">
 
-<div class="click" onclick="toggle('points')">
-💰 Points ▶
+<h3>💰 Current Points</h3>
+
+<div style="font-size:34px;font-weight:bold;">
+${m.points.balance}
 </div>
 
-<div id="points" class="hidden">
-
-Current Points: ${m.points.balance}<br>
 Cycle Start: ${m.points.cycleStart}<br>
-Expiry Date: ${m.points.expiry}
-
-</div>
+Expiry: ${m.points.expiry}
 
 </div>
 
 `;
-
-// catalog WITH redeem
 
 document.getElementById("result").innerHTML +=
 renderCatalog(
@@ -229,7 +257,12 @@ m.catalog,
 m.points.balance,
 m.profile.phone
 );
-  document.getElementById("result").innerHTML += `
+
+// =====================
+// REWARD BLOCKS
+// =====================
+
+document.getElementById("result").innerHTML += `
 
 <div class="box">
 
@@ -240,7 +273,7 @@ m.profile.phone
 <div id="spinReward" class="hidden">
 
 Reward: ${m.reward.name || "-"}<br>
-Token: ${m.reward.token || "-"}<br>
+Token: ${tokenBlock("spin", m.reward.token)}<br>
 Status: ${m.reward.status || "-"}<br>
 Expiry: ${m.reward.expiry || "-"}
 
@@ -256,7 +289,7 @@ Expiry: ${m.reward.expiry || "-"}
 
 <div id="birthdayReward" class="hidden">
 
-Token: ${m.birthdayReward.token || "-"}<br>
+Token: ${tokenBlock("birthday", m.birthdayReward.token)}<br>
 Status: ${m.birthdayReward.status || "-"}<br>
 Expiry: ${m.birthdayReward.expiry || "-"}
 
@@ -273,7 +306,7 @@ Expiry: ${m.birthdayReward.expiry || "-"}
 <div id="promoReward" class="hidden">
 
 Campaign: ${m.promoReward.campaign || "-"}<br>
-Token: ${m.promoReward.token || "-"}<br>
+Token: ${tokenBlock("promo", m.promoReward.token)}<br>
 Status: ${m.promoReward.status || "-"}<br>
 Expiry: ${m.promoReward.expiry || "-"}
 
@@ -289,20 +322,15 @@ Expiry: ${m.promoReward.expiry || "-"}
 
 <div id="referral" class="hidden">
 
-Referred By:
-${m.referral.referredBy || "-"}
+Referred By: ${m.referral.referredBy || "-"}
 
 </div>
 
 </div>
 
 `;
+
 }
-
-</script>
-
-</body>
-</html>
 
 </script>
 
