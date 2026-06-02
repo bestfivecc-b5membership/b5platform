@@ -186,22 +186,117 @@ let m=data.data;
 document.getElementById("result").innerHTML=`
 
 <div class="box">
-<b>${m.profile.name}</b><br>
-${m.profile.phone}<br>
-${m.profile.email}
+
+<div class="click" onclick="toggle('profile')">
+👤 Profile ▶
+</div>
+
+<div id="profile" class="hidden">
+
+Name: ${m.profile.name}<br>
+Phone: ${m.profile.phone}<br>
+Email: ${m.profile.email}<br>
+Birthday: ${m.profile.birthday}<br>
+Member Since: ${m.profile.memberSince}
+
+</div>
+
 </div>
 
 <div class="box">
-💰 Points: ${m.points.balance}<br>
-Expiry: ${m.points.expiry}
+
+<div class="click" onclick="toggle('points')">
+💰 Points ▶
+</div>
+
+<div id="points" class="hidden">
+
+Current Points: ${m.points.balance}<br>
+Cycle Start: ${m.points.cycleStart}<br>
+Expiry Date: ${m.points.expiry}
+
+</div>
+
 </div>
 
 `;
 
 // catalog WITH redeem
-document.getElementById("result").innerHTML +=
-renderCatalog(m.catalog, m.points.balance, m.profile.phone);
 
+document.getElementById("result").innerHTML +=
+renderCatalog(
+m.catalog,
+m.points.balance,
+m.profile.phone
+);
+  document.getElementById("result").innerHTML += `
+
+<div class="box">
+
+<div class="click" onclick="toggle('spinReward')">
+🎁 Spin Reward ▶
+</div>
+
+<div id="spinReward" class="hidden">
+
+Reward: ${m.reward.name || "-"}<br>
+Token: ${m.reward.token || "-"}<br>
+Status: ${m.reward.status || "-"}<br>
+Expiry: ${m.reward.expiry || "-"}
+
+</div>
+
+</div>
+
+<div class="box">
+
+<div class="click" onclick="toggle('birthdayReward')">
+🎂 Birthday Reward ▶
+</div>
+
+<div id="birthdayReward" class="hidden">
+
+Token: ${m.birthdayReward.token || "-"}<br>
+Status: ${m.birthdayReward.status || "-"}<br>
+Expiry: ${m.birthdayReward.expiry || "-"}
+
+</div>
+
+</div>
+
+<div class="box">
+
+<div class="click" onclick="toggle('promoReward')">
+🔥 Promo Reward ▶
+</div>
+
+<div id="promoReward" class="hidden">
+
+Campaign: ${m.promoReward.campaign || "-"}<br>
+Token: ${m.promoReward.token || "-"}<br>
+Status: ${m.promoReward.status || "-"}<br>
+Expiry: ${m.promoReward.expiry || "-"}
+
+</div>
+
+</div>
+
+<div class="box">
+
+<div class="click" onclick="toggle('referral')">
+👥 Referral ▶
+</div>
+
+<div id="referral" class="hidden">
+
+Referred By:
+${m.referral.referredBy || "-"}
+
+</div>
+
+</div>
+
+`;
 }
 
 </script>
