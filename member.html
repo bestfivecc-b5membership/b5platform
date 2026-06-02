@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Member Dashboard V2</title>
+<title>Member Dashboard V3</title>
 
 <style>
 
@@ -22,22 +22,18 @@ margin-bottom:14px;
 box-shadow:0 8px 18px rgba(0,0,0,0.08);
 }
 
-input{
+input,button{
 width:100%;
 padding:12px;
-margin-bottom:10px;
 border-radius:10px;
-border:1px solid #ddd;
+margin-bottom:10px;
 }
 
 button{
-padding:12px;
 border:none;
 background:#6b4e36;
 color:white;
-border-radius:10px;
 cursor:pointer;
-width:100%;
 }
 
 .row{
@@ -52,14 +48,27 @@ font-size:12px;
 color:#888;
 }
 
+.redeem-btn{
+background:#2e7d32;
+color:white;
+border:none;
+padding:6px 10px;
+border-radius:8px;
+cursor:pointer;
+font-size:12px;
+}
+
+.redeem-btn:disabled{
+background:#ccc;
+cursor:not-allowed;
+}
+
 .click{
 cursor:pointer;
 font-weight:bold;
 }
 
-.hidden{
-display:none;
-}
+.hidden{display:none;}
 
 </style>
 </head>
@@ -80,25 +89,45 @@ display:none;
 
 function toggle(id){
 const el=document.getElementById(id);
-el.style.display =
-el.style.display==="none"?"block":"none";
+el.style.display = el.style.display==="none"?"block":"none";
 }
 
 // =====================
-// REWARD CATALOG
+// REDEEM CALL
 // =====================
 
-function renderCatalog(catalog, points){
+async function redeem(phone, reward, points){
 
-if(!catalog || !catalog.length){
-return "<div class='box'>No rewards</div>";
+const url =
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec"
++ "?mode=redeem"
++ "&phone=" + encodeURIComponent(phone)
++ "&reward=" + encodeURIComponent(reward)
++ "&points=" + encodeURIComponent(points);
+
+let res = await fetch(url);
+let data = await res.json();
+
+alert(
+data.status === "ok"
+? "Redeemed! Remaining: " + data.remaining
+: "Failed: " + data.status
+);
+
+search();
 }
+
+// =====================
+// CATALOG
+// =====================
+
+function renderCatalog(catalog, points, phone){
+
+if(!catalog) return "";
 
 let html="<div class='box'><h3>🎁 Reward Catalog</h3>";
 
-catalog
-.sort((a,b)=>a.points-b.points)
-.forEach(item=>{
+catalog.sort((a,b)=>a.points-b.points).forEach(item=>{
 
 const can = points >= item.points;
 
@@ -106,14 +135,17 @@ html+=`
 <div class="row">
 <div>
 <b>${item.reward}</b><br>
-<span class="small">${item.points} Points</span>
+<span class="small">${item.points} pts</span>
 </div>
+
 <div>
-${can
-? "✅ Available"
-: "❌ -" + (item.points - points)
-}
+<button class="redeem-btn"
+${can ? "" : "disabled"}
+onclick="redeem('${phone}','${item.reward}',${item.points})">
+Redeem
+</button>
 </div>
+
 </div>
 `;
 });
@@ -138,15 +170,14 @@ return;
 
 let url="https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=member";
 
-if(phone) url+="&phone="+encodeURIComponent(phone);
-if(email) url+="&email="+encodeURIComponent(email);
+if(phone) url+="&phone="+phone;
+if(email) url+="&email="+email;
 
 let res=await fetch(url);
 let data=await res.json();
 
 if(data.status!=="ok"){
-document.getElementById("result").innerHTML=
-"<div class='box'>No member found</div>";
+document.getElementById("result").innerHTML="<div class='box'>No member</div>";
 return;
 }
 
@@ -155,104 +186,21 @@ let m=data.data;
 document.getElementById("result").innerHTML=`
 
 <div class="box">
-
-<div class="click" onclick="toggle('profile')">
-👤 Profile ▶
-</div>
-
-<div id="profile" class="hidden">
-
-Name: ${m.profile.name}<br>
-Phone: ${m.profile.phone}<br>
-Email: ${m.profile.email}<br>
-Birthday: ${m.profile.birthday}<br>
-Member Since: ${m.profile.memberSince}
-
-</div>
-
+<b>${m.profile.name}</b><br>
+${m.profile.phone}<br>
+${m.profile.email}
 </div>
 
 <div class="box">
-
-<div class="click" onclick="toggle('points')">
-💰 Points ▶
-</div>
-
-<div id="points" class="hidden">
-
-Current: ${m.points.balance}<br>
-Cycle Start: ${m.points.cycleStart}<br>
+💰 Points: ${m.points.balance}<br>
 Expiry: ${m.points.expiry}
-
-</div>
-
 </div>
 
 `;
 
-// catalog (IMPORTANT POSITION UNDER POINTS)
+// catalog WITH redeem
 document.getElementById("result").innerHTML +=
-renderCatalog(m.catalog, m.points.balance);
-
-document.getElementById("result").innerHTML += `
-
-<div class="box">
-
-<div class="click" onclick="toggle('spin')">
-🎁 Spin Reward ▶
-</div>
-
-<div id="spin" class="hidden">
-Reward: ${m.reward.name}<br>
-Token: ${m.reward.token}<br>
-Status: ${m.reward.status}<br>
-Expiry: ${m.reward.expiry}
-</div>
-
-</div>
-
-<div class="box">
-
-<div class="click" onclick="toggle('birthday')">
-🎂 Birthday ▶
-</div>
-
-<div id="birthday" class="hidden">
-Token: ${m.birthdayReward.token}<br>
-Status: ${m.birthdayReward.status}<br>
-Expiry: ${m.birthdayReward.expiry}
-</div>
-
-</div>
-
-<div class="box">
-
-<div class="click" onclick="toggle('promo')">
-🔥 Promo ▶
-</div>
-
-<div id="promo" class="hidden">
-Campaign: ${m.promoReward.campaign}<br>
-Token: ${m.promoReward.token}<br>
-Status: ${m.promoReward.status}<br>
-Expiry: ${m.promoReward.expiry}
-</div>
-
-</div>
-
-<div class="box">
-
-<div class="click" onclick="toggle('ref')">
-👥 Referral ▶
-</div>
-
-<div id="ref" class="hidden">
-${m.referral.referredBy || "-"}
-</div>
-
-</div>
-
-`;
+renderCatalog(m.catalog, m.points.balance, m.profile.phone);
 
 }
 
