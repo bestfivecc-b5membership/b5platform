@@ -22,11 +22,27 @@ margin-bottom:14px;
 box-shadow:0 8px 18px rgba(0,0,0,0.08);
 }
 
-input,button{
+*{
+box-sizing:border-box;
+}
+
+input, button{
 width:100%;
+max-width:100%;
 padding:12px;
 border-radius:10px;
 margin-bottom:10px;
+font-size:14px;
+}
+
+input{
+border:1px solid #ddd;
+outline:none;
+}
+
+input:focus{
+border-color:#6b4e36;
+box-shadow:0 0 0 2px rgba(107,78,54,0.15);
 }
 
 button{
@@ -94,7 +110,7 @@ background:#444;
 
 <h2>👤 Member Lookup</h2>
 
-<input id="phone" placeholder="Phone Number">
+<input id="phone" placeholder="Phone Number" onblur="normalizePhone(this)">
 <input id="email" placeholder="Email">
 <button onclick="search()">Search</button>
 
@@ -383,7 +399,24 @@ Referred By: ${m.referral.referredBy || "-"}
 `;
 
 }
+function normalizePhone(input){
+let phone = input.value.trim();
 
+// remove spaces / symbols
+phone = phone.replace(/[^0-9]/g,'');
+
+// 012xxxxxxx → 6012xxxxxxx
+if(phone.startsWith("0")){
+phone = "6" + phone;
+}
+
+// ensure 60 prefix
+if(!phone.startsWith("60")){
+phone = "60" + phone;
+}
+
+input.value = phone;
+}
 </script>
 
 </body>
