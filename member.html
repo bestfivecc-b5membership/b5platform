@@ -179,7 +179,56 @@ Redeem
 html+="</div>";
 return html;
 }
+// =====================
+// REDEEM HISTORY
+// =====================
 
+function renderHistory(history){
+
+if(!history || history.length===0){
+
+return `
+<div class="box">
+<h3>📜 Redeem History</h3>
+No redemption yet
+</div>
+`;
+}
+
+let html=`
+<div class="box">
+<h3>📜 Redeem History</h3>
+`;
+
+history.forEach(item=>{
+
+html+=`
+<div class="row">
+
+<div>
+
+<b>${item.reward}</b><br>
+
+<span class="small">
+${item.date}
+</span>
+
+</div>
+
+<div>
+
+-${item.points} pts
+
+</div>
+
+</div>
+`;
+});
+
+html+="</div>";
+
+return html;
+}
 // =====================
 // SEARCH
 // =====================
@@ -257,7 +306,10 @@ m.catalog,
 m.points.balance,
 m.profile.phone
 );
-
+document.getElementById("result").innerHTML +=
+renderHistory(
+m.history
+);
 // =====================
 // REWARD BLOCKS
 // =====================
