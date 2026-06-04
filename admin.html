@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>B5 Admin Panel V5</title>
+<title>B5 Admin Panel V5.1</title>
 
 <style>
 
@@ -67,6 +67,7 @@ margin:2px;
 .btn{background:#6b4e36;color:white;}
 .btn2{background:#28a745;color:white;}
 .btn3{background:#ff9800;color:white;}
+.btn4{background:#555;color:white;}
 
 input{
 padding:6px;
@@ -82,16 +83,20 @@ gap:6px;
 margin-bottom:10px;
 }
 
+input[disabled]{
+background:#f5f5f5;
+color:#999;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V5</div>
+<div class="header">📊 B5 Admin Panel V5.1</div>
 
 <div class="container">
 
-<!-- TOP BAR -->
 <div class="topBar">
 
 <input id="searchInput" placeholder="Search name / phone / email"
@@ -99,6 +104,8 @@ style="max-width:260px;padding:6px;font-size:12px;">
 
 <button class="btn" onclick="searchNow()">🔍 Search</button>
 <button class="btn" onclick="loadMembers()">🔄 Refresh</button>
+
+<button class="btn4" onclick="toggleEditMode()">✏️ Edit Mode</button>
 
 <button class="btn2" onclick="copySelectedPhones()">📱 Copy Phones</button>
 <button class="btn2" onclick="copySelectedEmails()">📧 Copy Emails</button>
@@ -129,6 +136,7 @@ style="max-width:260px;padding:6px;font-size:12px;">
 
 let members = [];
 let filtered = [];
+let editMode = false;
 
 // =========================
 // LOAD
@@ -152,7 +160,7 @@ render();
 }
 
 // =========================
-// SEARCH (CLIENT SIDE)
+// SEARCH
 // =========================
 function searchNow(){
 
@@ -176,6 +184,14 @@ render();
 }
 
 // =========================
+// TOGGLE EDIT MODE
+// =========================
+function toggleEditMode(){
+editMode = !editMode;
+render();
+}
+
+// =========================
 // RENDER
 // =========================
 function render(){
@@ -190,21 +206,25 @@ html += `
 
 <td>
 <input value="${m.name}"
+${editMode ? "" : "disabled"}
 onchange="updateField(${i},'name',this.value)">
 </td>
 
 <td>
 <input value="${m.phone}"
+${editMode ? "" : "disabled"}
 onchange="updateField(${i},'phone',this.value)">
 </td>
 
 <td>
 <input value="${m.email}"
+${editMode ? "" : "disabled"}
 onchange="updateField(${i},'email',this.value)">
 </td>
 
 <td>
 <input value="${m.points}"
+${editMode ? "" : "disabled"}
 onchange="updateField(${i},'points',this.value)">
 </td>
 
@@ -222,20 +242,22 @@ document.getElementById("tbody").innerHTML = html;
 }
 
 // =========================
-// INLINE AUTO SAVE (STABLE)
+// AUTO SAVE (FIXED + POINTS SUPPORT)
 // =========================
 async function updateField(i,field,value){
+
+if(!editMode) return;
 
 let m = filtered[i];
 m[field] = value;
 
-// update sheet
 let url =
 `https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
 + `&row=${m.row}`
 + `&name=${encodeURIComponent(m.name)}`
 + `&phone=${encodeURIComponent(m.phone)}`
-+ `&email=${encodeURIComponent(m.email)}`;
++ `&email=${encodeURIComponent(m.email)}`
++ `&points=${encodeURIComponent(m.points || 0)}`;
 
 await fetch(url);
 
@@ -268,23 +290,15 @@ c.checked = el.checked;
 }
 
 // =========================
-// GET SELECTED
-// =========================
-function getSelected(){
-
-let list = [];
-
-document.querySelectorAll(".chk:checked").forEach(c=>{
-let i = c.dataset.i;
-list.push(filtered[i]);
-});
-
-return list;
-}
-
-// =========================
 // COPY
 // =========================
+function getSelected(){
+return filtered.filter((m,i)=>{
+let el = document.querySelector(`.chk[data-i="${i}"]`);
+return el && el.checked;
+});
+}
+
 function copySelectedPhones(){
 navigator.clipboard.writeText(
 getSelected().map(m=>m.phone).join("\n")
