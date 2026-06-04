@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin Panel V1.4 CRM</title>
+<title>B5 Admin V1.5 CRM PRO</title>
 
 <style>
 
@@ -11,22 +11,39 @@ body{
 font-family:Arial;
 background:#f7f1e8;
 margin:0;
-padding:20px;
+padding:12px;
 color:#5e4630;
 }
 
 .header{
-font-size:20px;
+font-size:18px;
 font-weight:bold;
-margin-bottom:15px;
+margin-bottom:10px;
 }
 
 .box{
 background:white;
-padding:12px;
-border-radius:12px;
+padding:10px;
+border-radius:10px;
 margin-bottom:10px;
-box-shadow:0 4px 10px rgba(0,0,0,0.05);
+box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+
+.toolbar{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-top:6px;
+}
+
+button{
+padding:7px 9px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+background:#6b4e36;
+color:white;
+font-size:12px;
 }
 
 input{
@@ -34,44 +51,39 @@ width:100%;
 padding:10px;
 border-radius:8px;
 border:1px solid #ddd;
-margin-bottom:8px;
-}
-
-button{
-padding:8px 10px;
-border:none;
-border-radius:6px;
-cursor:pointer;
-background:#6b4e36;
-color:white;
-font-size:12px;
-margin-right:5px;
-}
-
-.toolbar{
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-bottom:10px;
+box-sizing:border-box;
 }
 
 .table{
 width:100%;
 border-collapse:collapse;
-font-size:13px;
+table-layout:fixed;
+font-size:12px;
 }
 
 .table th, .table td{
 border-bottom:1px solid #eee;
-padding:6px 4px;
+padding:6px;
 text-align:left;
-white-space:nowrap;
+word-wrap:break-word;
+overflow:hidden;
 }
 
 .table th{
 background:#f3ede6;
 position:sticky;
 top:0;
+z-index:1;
+}
+
+.checkbox{
+transform:scale(1.1);
+}
+
+.expand{
+background:#faf7f3;
+font-size:12px;
+padding:8px;
 }
 
 .small{
@@ -81,12 +93,8 @@ color:#888;
 
 .loading{
 padding:10px;
-font-size:13px;
+font-size:12px;
 color:#777;
-}
-
-.checkbox{
-transform:scale(1.1);
 }
 
 </style>
@@ -94,7 +102,7 @@ transform:scale(1.1);
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V1.4 CRM</div>
+<div class="header">📊 B5 Admin Panel V1.5</div>
 
 <div class="box">
 
@@ -108,6 +116,8 @@ transform:scale(1.1);
 
 <button onclick="copySelectedPhones()">Copy Phones</button>
 <button onclick="copySelectedEmails()">Copy Emails</button>
+<button onclick="copyAllInfo()">Copy ALL</button>
+<button onclick="exportCSV()">Export</button>
 
 </div>
 
@@ -124,7 +134,6 @@ transform:scale(1.1);
 let membersData = [];
 let selected = new Set();
 
-// =====================
 function API(){
 return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 }
@@ -133,7 +142,7 @@ return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5
 async function loadMembers(){
 
 document.getElementById("members").innerHTML =
-"<div class='loading'>Loading members...</div>";
+"<div class='loading'>Loading...</div>";
 
 let res = await fetch(API()+"?mode=admin_members");
 let data = await res.json();
@@ -155,8 +164,8 @@ let html = `
 <th>Name</th>
 <th>Phone</th>
 <th>Email</th>
-<th>Points</th>
-<th>Action</th>
+<th>Pts</th>
+<th></th>
 </tr>
 `;
 
@@ -183,10 +192,21 @@ ${selected.has(m.phone) ? "checked" : ""}>
 <td>${m.points}</td>
 
 <td>
-<button onclick="viewMember(${m.row})">View</button>
-<button onclick="editMember(${m.row})">Edit</button>
+<button onclick="toggleExpand(${m.row})">View</button>
 </td>
 
+</tr>
+
+<tr id="row-${m.row}" style="display:none">
+<td colspan="6" class="expand">
+<b>Detail:</b><br>
+Name: ${m.name}<br>
+Phone: ${m.phone}<br>
+Email: ${m.email}<br>
+Points: ${m.points}<br>
+
+<button onclick="editMember(${m.row})">Edit</button>
+</td>
 </tr>
 `;
 });
@@ -199,11 +219,8 @@ document.getElementById("members").innerHTML = html;
 // =====================
 function toggle(phone){
 
-if(selected.has(phone)){
-selected.delete(phone);
-}else{
-selected.add(phone);
-}
+if(selected.has(phone)) selected.delete(phone);
+else selected.add(phone);
 
 renderTable(membersData);
 }
@@ -222,59 +239,77 @@ renderTable(membersData);
 
 // =====================
 function copySelectedPhones(){
-
-let arr = membersData
-.filter(m => selected.has(m.phone))
-.map(m => m.phone);
-
+let arr = membersData.filter(m => selected.has(m.phone)).map(m => m.phone);
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied phones: " + arr.length);
+alert("Phones copied: " + arr.length);
 }
 
 // =====================
 function copySelectedEmails(){
-
-let arr = membersData
-.filter(m => selected.has(m.phone))
-.map(m => m.email);
-
+let arr = membersData.filter(m => selected.has(m.phone)).map(m => m.email);
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied emails: " + arr.length);
+alert("Emails copied: " + arr.length);
 }
 
 // =====================
-async function viewMember(row){
+function copyAllInfo(){
 
-let res = await fetch(API()+"?mode=admin_member_detail&row="+row);
-let data = await res.json();
-
-let m = data.member;
-
-alert(
-"Name: " + m.name + "\n" +
-"Phone: " + m.phone + "\n" +
-"Email: " + m.email + "\n" +
-"Points: " + m.points
+let arr = membersData
+.filter(m => selected.has(m.phone))
+.map(m =>
+`${m.name} | ${m.phone} | ${m.email} | ${m.points}`
 );
 
+navigator.clipboard.writeText(arr.join("\n"));
+alert("Copied full info: " + arr.length);
+}
+
+// =====================
+function exportCSV(){
+
+let rows = [["Name","Phone","Email","Points"]];
+
+membersData.forEach(m=>{
+rows.push([m.name,m.phone,m.email,m.points]);
+});
+
+let csv = rows.map(r=>r.join(",")).join("\n");
+
+let blob = new Blob([csv], {type:"text/csv"});
+let url = URL.createObjectURL(blob);
+
+let a = document.createElement("a");
+a.href = url;
+a.download = "members.csv";
+a.click();
+}
+
+// =====================
+function toggleExpand(row){
+
+let el = document.getElementById("row-"+row);
+if(!el) return;
+
+el.style.display =
+(el.style.display==="none") ? "table-row" : "none";
 }
 
 // =====================
 async function editMember(row){
 
-let old = membersData.find(m => m.row === row);
-if(!old) return;
+let m = membersData.find(x=>x.row===row);
+if(!m) return;
 
-let name = prompt("Name", old.name);
-let phone = prompt("Phone", old.phone);
-let email = prompt("Email", old.email);
+let name = prompt("Name", m.name);
+let phone = prompt("Phone", m.phone);
+let email = prompt("Email", m.email);
 
 await fetch(API()
 + "?mode=admin_update_member"
-+ "&row=" + row
-+ "&name=" + encodeURIComponent(name || old.name)
-+ "&phone=" + encodeURIComponent(phone || old.phone)
-+ "&email=" + encodeURIComponent(email || old.email)
++ "&row="+row
++ "&name="+encodeURIComponent(name||m.name)
++ "&phone="+encodeURIComponent(phone||m.phone)
++ "&email="+encodeURIComponent(email||m.email)
 );
 
 await loadMembers();
