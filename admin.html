@@ -210,12 +210,27 @@ Cycle Start: ${m.cycleStart}<br>
 
 async function editBasic(row){
 
-let name = prompt("Name:");
-let phone = prompt("Phone:");
-let email = prompt("Email:");
+// 先找旧数据（用来做 fallback）
+let old = membersData.find(m => m.row === row);
+if(!old) {
+  alert("Member not found in memory");
+  return;
+}
 
-if(!name || !phone || !email) return;
+// prompt（允许空）
+let name = prompt("Name (leave empty = keep old)", old.name);
+let phone = prompt("Phone (leave empty = keep old)", old.phone);
+let email = prompt("Email (leave empty = keep old)", old.email);
 
+// 如果按 cancel
+if(name === null || phone === null || email === null) return;
+
+// trim + fallback
+name = name.trim() || old.name;
+phone = phone.trim() || old.phone;
+email = email.trim() || old.email;
+
+// update backend
 await fetch(
 "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member"
 + "&row=" + row
@@ -224,15 +239,45 @@ await fetch(
 + "&email=" + encodeURIComponent(email)
 );
 
-// 🔥 important: wait backend flush
-await new Promise(r => setTimeout(r, 500));
+// 等 backend commit
+await new Promise(r => setTimeout(r, 400));
 
-alert("Updated");
-
-// 🔥 force fresh reload (NOT reuse old memory)
-membersData = [];
+// 🔥 强制刷新列表
 await loadMembers();
 
+// 🔥 如果 detail panel 正在显示，就同步更新它
+let res = await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=" + row
+);
+
+let data = await res.json();
+
+if(data.status === "ok"){
+  renderDetail(data.member); // 用下面 function
+}
+
+alert("Updated");
+}
+
+function renderDetail(m){
+
+document.getElementById("detailBox").classList.remove("hidden");
+
+document.getElementById("detail").innerHTML = `
+Name: ${m.name}<br>
+Phone: ${m.phone}<br>
+Email: ${m.email}<br>
+Birthday: ${m.birthday}<br><br>
+
+Points: ${m.points}<br><br>
+
+Spin: ${m.spinStatus}<br>
+Birthday: ${m.birthdayStatus}<br>
+Promo: ${m.promoStatus}<br><br>
+
+Referral: ${m.referral}<br>
+Cycle Start: ${m.cycleStart}<br>
+`;
 }
 
 function copyText(text){
