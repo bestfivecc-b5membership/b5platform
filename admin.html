@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>B5 Admin Panel V4.7</title>
+<title>B5 Admin Panel V4.5</title>
 
 <style>
 
@@ -16,7 +16,7 @@ color:#4b3b2a;
 
 .header{
 background:#6b4e36;
-color:white;
+color:#fff;
 padding:14px;
 text-align:center;
 font-weight:bold;
@@ -24,39 +24,42 @@ font-weight:bold;
 
 .container{
 padding:10px;
+max-width:100%;
 overflow-x:auto;
 }
 
-.topBar{
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-bottom:10px;
-align-items:center;
+/* TABLE WRAPPER */
+.tableWrap{
+overflow-x:auto;
+background:white;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
+/* TABLE */
 table{
 width:100%;
 border-collapse:collapse;
 min-width:900px;
-background:white;
-border-radius:10px;
-overflow:hidden;
 }
 
 th,td{
 padding:10px;
 border-bottom:1px solid #eee;
 font-size:13px;
+text-align:left;
 white-space:nowrap;
 }
 
 th{
 background:#f3ede6;
+position:sticky;
+top:0;
+z-index:2;
 }
 
 button{
-padding:5px 10px;
+padding:6px 10px;
 font-size:12px;
 border:none;
 border-radius:6px;
@@ -64,23 +67,38 @@ cursor:pointer;
 margin:2px;
 }
 
-.btn{background:#6b4e36;color:white;}
-.btn2{background:#28a745;color:white;}
-.btn3{background:#ff9800;color:white;}
-
-input{
-padding:5px;
-font-size:12px;
-width:100%;
+.btn{
+background:#6b4e36;
+color:white;
 }
 
-.detailBox{
-background:#fff;
-padding:10px;
-border-radius:10px;
-margin-top:10px;
-display:none;
-border:1px solid #ddd;
+.btn2{
+background:#28a745;
+color:white;
+}
+
+.btn3{
+background:#ff9800;
+color:white;
+}
+
+.small{
+font-size:12px;
+color:#777;
+}
+
+input{
+padding:6px;
+font-size:12px;
+width:100%;
+box-sizing:border-box;
+}
+
+.topBar{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-bottom:10px;
 }
 
 </style>
@@ -88,26 +106,19 @@ border:1px solid #ddd;
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V4.7 FINAL</div>
+<div class="header">📊 B5 Admin Panel V4.5</div>
 
 <div class="container">
 
 <div class="topBar">
-
-<input id="searchText" placeholder="Search name / phone / email">
-
-<button class="btn" onclick="searchMembers()">🔍 Search</button>
 <button class="btn" onclick="loadMembers()">🔄 Refresh</button>
-
-<button class="btn2" onclick="copyPhones()">📱 Phones</button>
-<button class="btn2" onclick="copyEmails()">📧 Emails</button>
-<button class="btn2" onclick="copyAll()">📋 Copy All</button>
-
+<button class="btn2" onclick="copyAllPhones()">📱 Copy All Phones</button>
+<button class="btn2" onclick="copyAllEmails()">📧 Copy All Emails</button>
 <button class="btn3" onclick="exportCSV()">⬇ Export</button>
-
 </div>
 
-<table>
+<div class="tableWrap">
+<table id="table">
 <thead>
 <tr>
 <th><input type="checkbox" onclick="toggleAll(this)"></th>
@@ -118,22 +129,23 @@ border:1px solid #ddd;
 <th>Actions</th>
 </tr>
 </thead>
-
 <tbody id="tbody"></tbody>
 </table>
-
-<div id="detailBox" class="detailBox"></div>
+</div>
 
 </div>
 
 <script>
 
-let allMembers = [];
-let filteredMembers = [];
-let editIndex = null;
+let members = [];
 
 // =========================
+// LOAD MEMBERS
+// =========================
 async function loadMembers(){
+
+document.getElementById("tbody").innerHTML =
+"<tr><td colspan='6'>Loading...</td></tr>";
 
 let res = await fetch(
 "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_members"
@@ -141,50 +153,41 @@ let res = await fetch(
 
 let data = await res.json();
 
-allMembers = data.members || [];
-filteredMembers = [...allMembers];
+members = data.members || [];
 
 render();
 
 }
 
 // =========================
+// RENDER TABLE
+// =========================
 function render(){
 
 let html = "";
 
-filteredMembers.forEach((m,i)=>{
-
-let isEdit = (editIndex === i);
+members.forEach((m,i)=>{
 
 html += `
 <tr>
-<td><input type="checkbox" data-i="${i}"></td>
+<td><input type="checkbox" class="chk" data-i="${i}"></td>
 
 <td>
-${isEdit ? `<input value="${m.name}" oninput="m.name=this.value">` : m.name}
+<input value="${m.name}" onchange="edit(${i},'name',this.value)">
 </td>
 
 <td>
-${isEdit ? `<input value="${m.phone}" oninput="m.phone=this.value">` : m.phone}
+<input value="${m.phone}" onchange="edit(${i},'phone',this.value)">
 </td>
 
 <td>
-${isEdit ? `<input value="${m.email}" oninput="m.email=this.value">` : m.email}
+<input value="${m.email}" onchange="edit(${i},'email',this.value)">
 </td>
 
-<td>
-${isEdit ? `<input value="${m.points}" oninput="m.points=this.value">` : m.points}
-</td>
+<td>${m.points}</td>
 
 <td>
-${isEdit ? `
-<button class="btn2" onclick="save(${i})">Save</button>
-<button onclick="cancel()">Cancel</button>
-` : `
 <button class="btn" onclick="view(${m.row})">View</button>
-<button class="btn2" onclick="edit(${i})">Edit</button>
-`}
 </td>
 
 </tr>
@@ -197,55 +200,28 @@ document.getElementById("tbody").innerHTML = html;
 }
 
 // =========================
-function searchMembers(){
-
-let k = document.getElementById("searchText").value.toLowerCase();
-
-filteredMembers = allMembers.filter(m =>
-
-(m.name||"").toLowerCase().includes(k) ||
-(m.phone||"").toLowerCase().includes(k) ||
-(m.email||"").toLowerCase().includes(k)
-
-);
-
-render();
-
-}
-
+// EDIT MEMBER (AUTO SAVE)
 // =========================
-function edit(i){
-editIndex = i;
-render();
-}
+async function edit(i,field,value){
 
-// =========================
-function cancel(){
-editIndex = null;
-render();
-}
-
-// =========================
-async function save(i){
-
-let m = filteredMembers[i];
+let m = members[i];
 
 let url =
 `https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
 + `&row=${m.row}`
-+ `&name=${encodeURIComponent(m.name)}`
-+ `&phone=${encodeURIComponent(m.phone)}`
-+ `&email=${encodeURIComponent(m.email)}`
-+ `&points=${encodeURIComponent(m.points)}`;
++ `&name=${field==='name'?value:m.name}`
++ `&phone=${field==='phone'?value:m.phone}`
++ `&email=${field==='email'?value:m.email}`;
 
 await fetch(url);
 
-editIndex = null;
-
-await loadMembers();
+// update local (NO refresh needed)
+m[field] = value;
 
 }
 
+// =========================
+// VIEW
 // =========================
 async function view(row){
 
@@ -253,80 +229,57 @@ let res = await fetch(
 `https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=${row}`
 );
 
-let d = await res.json();
+let data = await res.json();
 
-let m = d.member;
-
-document.getElementById("detailBox").style.display = "block";
-
-document.getElementById("detailBox").innerHTML = `
-<b>${m.name}</b><br>
-📞 ${m.phone}<br>
-📧 ${m.email}<br><br>
-
-Points: ${m.points}<br><br>
-
-Reward: ${m.reward}<br>
-Birthday: ${m.birthdayStatus}<br>
-Promo: ${m.promoStatus}<br>
-Referral: ${m.referral}<br>
-`;
+alert(
+`Name: ${data.member.name}\nPhone: ${data.member.phone}\nEmail: ${data.member.email}\nPoints: ${data.member.points}`
+);
 
 }
 
+// =========================
+// SELECT ALL
 // =========================
 function toggleAll(el){
-document.querySelectorAll("input[type=checkbox]").forEach(c=>{
+
+document.querySelectorAll(".chk").forEach(c=>{
 c.checked = el.checked;
 });
-}
-
-// =========================
-function getSelected(){
-
-let list = [];
-document.querySelectorAll("input[type=checkbox]:checked").forEach(c=>{
-let i = c.getAttribute("data-i");
-if(i !== null){
-list.push(filteredMembers[i]);
-}
-});
-return list;
 
 }
 
 // =========================
-function copyPhones(){
-navigator.clipboard.writeText(getSelected().map(m=>m.phone).join("\n"));
-alert("Copied phones");
+// COPY PHONE
+// =========================
+function copyAllPhones(){
+
+let list = members.map(m=>m.phone).join("\n");
+navigator.clipboard.writeText(list);
+alert("Phones copied");
 }
 
 // =========================
-function copyEmails(){
-navigator.clipboard.writeText(getSelected().map(m=>m.email).join("\n"));
-alert("Copied emails");
+// COPY EMAIL
+// =========================
+function copyAllEmails(){
+
+let list = members.map(m=>m.email).join("\n");
+navigator.clipboard.writeText(list);
+alert("Emails copied");
 }
 
 // =========================
-function copyAll(){
-let text = getSelected().map(m =>
-`${m.name} | ${m.phone} | ${m.email} | ${m.points}`
-).join("\n");
-
-navigator.clipboard.writeText(text);
-alert("Copied all");
-}
-
+// EXPORT CSV
 // =========================
 function exportCSV(){
 
 let csv = "Name,Phone,Email,Points\n";
 
-filteredMembers.forEach(m=>{
+members.forEach(m=>{
 csv += `${m.name},${m.phone},${m.email},${m.points}\n`;
 });
 
-let blob = new Blob([csv],{type:"text/csv"});
+let blob = new Blob([csv], {type:"text/csv"});
 let url = URL.createObjectURL(blob);
 
 let a = document.createElement("a");
