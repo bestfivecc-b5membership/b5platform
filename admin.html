@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin Panel V1.2 FIXED</title>
+<title>B5 Admin Panel V1.3 FIXED</title>
 
 <style>
 body{
@@ -44,6 +44,8 @@ cursor:pointer;
 background:#6b4e36;
 color:white;
 margin-top:5px;
+margin-right:5px;
+font-size:13px;
 }
 
 .small{
@@ -65,19 +67,12 @@ margin-left:5px;
 
 .hidden{display:none;}
 
-.badge{
-font-size:11px;
-background:#eee;
-padding:2px 6px;
-border-radius:6px;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V1.2 FIXED</div>
+<div class="header">📊 B5 Admin Panel V1.3 FIXED</div>
 
 <div class="box">
 <b>Dashboard</b>
@@ -87,18 +82,19 @@ border-radius:6px;
 <div class="box">
 <b>Search Member</b>
 <input id="searchInput" placeholder="Name / Phone / Email">
+
 <button onclick="loadMembers()">Search</button>
-<button onclick="copyAllPhones()">📱 Copy Phones</button>
-<button onclick="copyAllEmails()">📧 Copy Emails</button>
+
 <button onclick="selectAll()">Select All</button>
 <button onclick="clearSelect()">Clear</button>
-<button onclick="copySelectedPhones()">Copy Selected Phones</button>
-<button onclick="copySelectedEmails()">Copy Selected Emails</button>  
+
+<button onclick="copySelectedPhones()">📱 Copy Selected Phones</button>
+<button onclick="copySelectedEmails()">📧 Copy Selected Emails</button>
 </div>
 
 <div class="box">
 <b>Members</b>
-<div id="members"></div>
+<div id="members">Loading...</div>
 </div>
 
 <div class="box hidden" id="detailBox">
@@ -109,26 +105,19 @@ border-radius:6px;
 <script>
 
 let membersData = [];
+let selected = new Set();
 
 // =====================
-// LOAD DASHBOARD
+// API
 // =====================
-async function loadDashboard(){
-
-let res = await fetch(API()+"?mode=admin_get");
-let data = await res.json();
-
-document.getElementById("stats").innerHTML =
-"Total Members: <b>" + (data.totalMembers || 0) + "</b>";
+function API(){
+return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 }
 
 // =====================
 // LOAD MEMBERS
 // =====================
 async function loadMembers(){
-
-// 🔥 如果已有数据且没强制 refresh，就不重新 fetch
-if(membersData.length > 0) return;
 
 let res = await fetch(API()+"?mode=admin_members");
 let data = await res.json();
@@ -138,22 +127,15 @@ membersData = data.members || [];
 renderMembers(membersData);
 }
 
-async function refreshMembers(){
-
-membersData = [];
-
-await loadMembers();
-}
-  
 // =====================
-// RENDER MEMBERS (FIXED)
+// RENDER MEMBERS
 // =====================
 function renderMembers(list){
 
 let keyword = document.getElementById("searchInput").value.toLowerCase();
 
 let container = document.getElementById("members");
-container.innerHTML = ""; // 🔥 FIX UI RESET
+container.innerHTML = "";
 
 list.forEach(m => {
 
@@ -163,19 +145,24 @@ m.phone.includes(keyword) ||
 m.email.toLowerCase().includes(keyword)))
 return;
 
+let checked = selected.has(m.phone) ? "checked" : "";
+
 container.innerHTML += `
 <div class="member">
 
-<input type="checkbox" onchange="toggleSelect('${m.phone}')">
+<input type="checkbox"
+onchange="toggleSelect('${m.phone}')"
+${checked}>
 
 <b>${m.name}</b><br>
+
 ${m.phone}
-<button class="copy-btn" onclick="copyText('${m.phone}')">Copy</button><br>
+<button onclick="copyText('${m.phone}')">Copy</button><br>
 
 ${m.email}
-<button class="copy-btn" onclick="copyText('${m.email}')">Copy</button><br>
+<button onclick="copyText('${m.email}')">Copy</button><br>
 
-Points: <b>${m.points}</b><br>
+Points: ${m.points}<br>
 
 <button onclick="viewMember(${m.row})">View</button>
 <button onclick="editBasic(${m.row})">Edit</button>
@@ -186,51 +173,88 @@ Points: <b>${m.points}</b><br>
 
 }
 
+// =====================
+// SELECT TOGGLE
+// =====================
 function toggleSelect(phone){
 
 if(selected.has(phone)){
 selected.delete(phone);
-} else {
+}else{
 selected.add(phone);
 }
+
+renderMembers(membersData);
 }
 
+// =====================
+// SELECT ALL
+// =====================
+function selectAll(){
+
+selected = new Set(membersData.map(m => m.phone));
+
+renderMembers(membersData);
+}
+
+// =====================
+// CLEAR SELECT
+// =====================
+function clearSelect(){
+
+selected.clear();
+
+renderMembers(membersData);
+}
+
+// =====================
+// COPY SINGLE
+// =====================
+function copyText(text){
+navigator.clipboard.writeText(text);
+alert("Copied");
+}
+
+// =====================
+// COPY SELECTED PHONES
+// =====================
 function copySelectedPhones(){
 
 let arr = membersData
 .filter(m => selected.has(m.phone))
 .map(m => m.phone);
 
-navigator.clipboard.writeText(arr.join("\n"));
-
-alert("Copied selected phones: " + arr.length);
+if(arr.length === 0){
+alert("No selection");
+return;
 }
 
+navigator.clipboard.writeText(arr.join("\n"));
+
+alert("Copied phones: " + arr.length);
+}
+
+// =====================
+// COPY SELECTED EMAILS
+// =====================
 function copySelectedEmails(){
 
 let arr = membersData
 .filter(m => selected.has(m.phone))
 .map(m => m.email);
 
+if(arr.length === 0){
+alert("No selection");
+return;
+}
+
 navigator.clipboard.writeText(arr.join("\n"));
 
-alert("Copied selected emails: " + arr.length);
+alert("Copied emails: " + arr.length);
 }
 
-function selectAll(){
-
-membersData.forEach(m => selected.add(m.phone));
-
-renderMembers(membersData);
-}
-
-function clearSelect(){
-selected.clear();
-renderMembers(membersData);
-}
-  
 // =====================
-// VIEW MEMBER (FIXED)
+// VIEW MEMBER
 // =====================
 async function viewMember(row){
 
@@ -247,88 +271,43 @@ Phone: ${m.phone}<br>
 Email: ${m.email}<br>
 Birthday: ${m.birthday}<br><br>
 
-Points: ${m.points}<br><br>
-
+Points: ${m.points}<br>
 Spin: ${m.spinStatus}<br>
 Birthday: ${m.birthdayStatus}<br>
-Promo: ${m.promoStatus}<br><br>
-
-Referral: ${m.referral}<br>
-Cycle Start: ${m.cycleStart}<br>
+Promo: ${m.promoStatus}<br>
 `;
 }
 
 // =====================
-// EDIT MEMBER (FIXED + SAFE)
+// EDIT MEMBER
 // =====================
 async function editBasic(row){
 
 let old = membersData.find(m => m.row === row);
 if(!old) return;
 
-let name = prompt("Name (leave empty = keep)", old.name);
-let phone = prompt("Phone (leave empty = keep)", old.phone);
-let email = prompt("Email (leave empty = keep)", old.email);
+let name = prompt("Name", old.name);
+let phone = prompt("Phone", old.phone);
+let email = prompt("Email", old.email);
 
 if(name === null || phone === null || email === null) return;
-
-name = name.trim() || old.name;
-phone = phone.trim() || old.phone;
-email = email.trim() || old.email;
 
 await fetch(API()
 + "?mode=admin_update_member"
 + "&row=" + row
-+ "&name=" + encodeURIComponent(name)
-+ "&phone=" + encodeURIComponent(phone)
-+ "&email=" + encodeURIComponent(email)
++ "&name=" + encodeURIComponent(name || old.name)
++ "&phone=" + encodeURIComponent(phone || old.phone)
++ "&email=" + encodeURIComponent(email || old.email)
 );
 
-await new Promise(r => setTimeout(r, 500));
-
-// 🔥 reload fresh state
 await loadMembers();
-
-// 🔥 refresh detail if open
-if(!document.getElementById("detailBox").classList.contains("hidden")){
-await viewMember(row);
-}
 
 alert("Updated");
 }
 
 // =====================
-// COPY SINGLE
+// INIT
 // =====================
-function copyText(text){
-navigator.clipboard.writeText(text);
-alert("Copied");
-}
-
-// =====================
-// BULK COPY
-// =====================
-function copyAllPhones(){
-let all = membersData.map(m => m.phone).join("\n");
-navigator.clipboard.writeText(all);
-alert("All phones copied");
-}
-
-function copyAllEmails(){
-let all = membersData.map(m => m.email).join("\n");
-navigator.clipboard.writeText(all);
-alert("All emails copied");
-}
-
-// =====================
-// API BASE
-// =====================
-function API(){
-return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
-}
-
-// =====================
-loadDashboard();
 loadMembers();
 
 </script>
