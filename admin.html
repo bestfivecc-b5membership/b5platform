@@ -88,10 +88,37 @@ background:#fffaf5;
 <div class="container">
 
 <div class="topBar">
-<button class="btn" onclick="loadMembers()">🔄 Refresh</button>
-<button class="btn2" onclick="copySelectedPhones()">📱 Copy Selected Phones</button>
-<button class="btn2" onclick="copySelectedEmails()">📧 Copy Selected Emails</button>
-<button class="btn3" onclick="exportCSV()">⬇ Export</button>
+<div class="topBar">
+
+<input
+id="searchText"
+placeholder="Search Name / Phone / Email"
+style="
+max-width:250px;
+padding:6px;
+font-size:12px;
+">
+
+<button class="btn" onclick="searchMembers()">
+🔍 Search
+</button>
+
+<button class="btn" onclick="loadMembers()">
+🔄 Refresh
+</button>
+
+<button class="btn2" onclick="copySelectedPhones()">
+📱 Copy Selected Phones
+</button>
+
+<button class="btn2" onclick="copySelectedEmails()">
+📧 Copy Selected Emails
+</button>
+
+<button class="btn3" onclick="exportCSV()">
+⬇ Export
+</button>
+
 </div>
 
 <table>
@@ -161,7 +188,11 @@ ${isEdit
 : m.email}
 </td>
 
-<td>${m.points}</td>
+<td>
+${isEdit
+? `<input value="${m.points}" onchange="m.points=this.value">`
+: m.points}
+</td>
 
 <td>
 ${isEdit
@@ -183,7 +214,57 @@ ${isEdit
 document.getElementById("tbody").innerHTML = html;
 
 }
+function searchMembers(){
 
+let keyword =
+document.getElementById("searchText")
+.value
+.toLowerCase()
+.trim();
+
+if(!keyword){
+
+render();
+return;
+
+}
+
+let filtered =
+members.filter(m =>
+
+(m.name||"")
+.toLowerCase()
+.includes(keyword)
+
+||
+
+(m.phone||"")
+.toLowerCase()
+.includes(keyword)
+
+||
+
+(m.email||"")
+.toLowerCase()
+.includes(keyword)
+
+);
+
+renderFiltered(filtered);
+
+}
+function renderFiltered(list){
+
+let backup = members;
+
+members = list;
+
+render();
+
+members = backup;
+
+}
+  
 // =========================
 function edit(i){
 editMode[i] = true;
@@ -196,16 +277,38 @@ async function save(i){
 let m = members[i];
 
 let url =
-`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_advanced`
 + `&row=${m.row}`
-+ `&name=${m.name}`
-+ `&phone=${m.phone}`
-+ `&email=${m.email}`;
++ `&reward=${encodeURIComponent(m.reward||"")}`
++ `&points=${encodeURIComponent(m.points||0)}`
++ `&spinToken=${encodeURIComponent(m.spinToken||"")}`
++ `&spinStatus=${encodeURIComponent(m.spinStatus||"")}`
++ `&spinExpiry=${encodeURIComponent(m.spinExpiry||"")}`
++ `&birthdayToken=${encodeURIComponent(m.birthdayToken||"")}`
++ `&birthdayStatus=${encodeURIComponent(m.birthdayStatus||"")}`
++ `&birthdayExpiry=${encodeURIComponent(m.birthdayExpiry||"")}`
++ `&promoToken=${encodeURIComponent(m.promoToken||"")}`
++ `&promoStatus=${encodeURIComponent(m.promoStatus||"")}`
++ `&promoExpiry=${encodeURIComponent(m.promoExpiry||"")}`
++ `&promoCampaign=${encodeURIComponent(m.promoCampaign||"')}`
++ `&referral=${encodeURIComponent(m.referral||"")}`
++ `&cycleStart=${encodeURIComponent(m.cycleStart||"")}`;
 
 await fetch(url);
 
+await fetch(
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
++ `&row=${m.row}`
++ `&name=${encodeURIComponent(m.name)}`
++ `&phone=${encodeURIComponent(m.phone)}`
++ `&email=${encodeURIComponent(m.email)}`
+);
+
 editMode[i] = false;
-render();
+
+await loadMembers();
+
+alert("Updated");
 
 }
 
