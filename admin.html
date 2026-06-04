@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin Panel V1.2</title>
+<title>B5 Admin Panel V1.2 FIXED</title>
 
 <style>
 body{
@@ -51,19 +51,9 @@ font-size:12px;
 color:#888;
 }
 
-.row{
-padding:8px 0;
-border-bottom:1px solid #eee;
-}
-
 .member{
 padding:10px;
 border-bottom:1px solid #eee;
-}
-
-.flex{
-display:flex;
-gap:10px;
 }
 
 .copy-btn{
@@ -73,9 +63,7 @@ padding:5px 8px;
 margin-left:5px;
 }
 
-.hidden{
-display:none;
-}
+.hidden{display:none;}
 
 .badge{
 font-size:11px;
@@ -89,7 +77,7 @@ border-radius:6px;
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V1.2</div>
+<div class="header">📊 B5 Admin Panel V1.2 FIXED</div>
 
 <div class="box">
 <b>Dashboard</b>
@@ -106,7 +94,7 @@ border-radius:6px;
 
 <div class="box">
 <b>Members</b>
-<div id="members">Loading...</div>
+<div id="members"></div>
 </div>
 
 <div class="box hidden" id="detailBox">
@@ -118,38 +106,40 @@ border-radius:6px;
 
 let membersData = [];
 
+// =====================
+// LOAD DASHBOARD
+// =====================
 async function loadDashboard(){
 
-let res = await fetch(
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_get"
-);
-
+let res = await fetch(API()+"?mode=admin_get");
 let data = await res.json();
 
 document.getElementById("stats").innerHTML =
-"Total Members: <b>" + data.totalMembers + "</b>";
-
+"Total Members: <b>" + (data.totalMembers || 0) + "</b>";
 }
 
+// =====================
+// LOAD MEMBERS
+// =====================
 async function loadMembers(){
 
-let res = await fetch(
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_members"
-);
-
+let res = await fetch(API()+"?mode=admin_members");
 let data = await res.json();
 
-membersData = data.members;
+membersData = data.members || [];
 
 renderMembers(membersData);
-
 }
 
+// =====================
+// RENDER MEMBERS (FIXED)
+// =====================
 function renderMembers(list){
 
 let keyword = document.getElementById("searchInput").value.toLowerCase();
 
-let html = "";
+let container = document.getElementById("members");
+container.innerHTML = ""; // 🔥 FIX UI RESET
 
 list.forEach(m => {
 
@@ -159,13 +149,15 @@ m.phone.includes(keyword) ||
 m.email.toLowerCase().includes(keyword)))
 return;
 
-html += `
+container.innerHTML += `
 <div class="member">
 <b>${m.name}</b><br>
 ${m.phone}
 <button class="copy-btn" onclick="copyText('${m.phone}')">Copy</button><br>
+
 ${m.email}
 <button class="copy-btn" onclick="copyText('${m.email}')">Copy</button><br>
+
 Points: <b>${m.points}</b><br>
 
 <button onclick="viewMember(${m.row})">View</button>
@@ -174,16 +166,14 @@ Points: <b>${m.points}</b><br>
 `;
 });
 
-document.getElementById("members").innerHTML = html;
-
 }
 
+// =====================
+// VIEW MEMBER (FIXED)
+// =====================
 async function viewMember(row){
 
-let res = await fetch(
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=" + row
-);
-
+let res = await fetch(API()+"?mode=admin_member_detail&row="+row);
 let data = await res.json();
 
 let m = data.member;
@@ -205,100 +195,78 @@ Promo: ${m.promoStatus}<br><br>
 Referral: ${m.referral}<br>
 Cycle Start: ${m.cycleStart}<br>
 `;
-
 }
 
+// =====================
+// EDIT MEMBER (FIXED + SAFE)
+// =====================
 async function editBasic(row){
 
-// 先找旧数据（用来做 fallback）
 let old = membersData.find(m => m.row === row);
-if(!old) {
-  alert("Member not found in memory");
-  return;
-}
+if(!old) return;
 
-// prompt（允许空）
-let name = prompt("Name (leave empty = keep old)", old.name);
-let phone = prompt("Phone (leave empty = keep old)", old.phone);
-let email = prompt("Email (leave empty = keep old)", old.email);
+let name = prompt("Name (leave empty = keep)", old.name);
+let phone = prompt("Phone (leave empty = keep)", old.phone);
+let email = prompt("Email (leave empty = keep)", old.email);
 
-// 如果按 cancel
 if(name === null || phone === null || email === null) return;
 
-// trim + fallback
 name = name.trim() || old.name;
 phone = phone.trim() || old.phone;
 email = email.trim() || old.email;
 
-// update backend
-await fetch(
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member"
+await fetch(API()
++ "?mode=admin_update_member"
 + "&row=" + row
 + "&name=" + encodeURIComponent(name)
 + "&phone=" + encodeURIComponent(phone)
 + "&email=" + encodeURIComponent(email)
 );
 
-// 等 backend commit
-await new Promise(r => setTimeout(r, 400));
+await new Promise(r => setTimeout(r, 500));
 
-// 🔥 强制刷新列表
+// 🔥 reload fresh state
 await loadMembers();
 
-// 🔥 如果 detail panel 正在显示，就同步更新它
-let res = await fetch(
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=" + row
-);
-
-let data = await res.json();
-
-if(data.status === "ok"){
-  renderDetail(data.member); // 用下面 function
+// 🔥 refresh detail if open
+if(!document.getElementById("detailBox").classList.contains("hidden")){
+await viewMember(row);
 }
 
 alert("Updated");
 }
 
-function renderDetail(m){
-
-document.getElementById("detailBox").classList.remove("hidden");
-
-document.getElementById("detail").innerHTML = `
-Name: ${m.name}<br>
-Phone: ${m.phone}<br>
-Email: ${m.email}<br>
-Birthday: ${m.birthday}<br><br>
-
-Points: ${m.points}<br><br>
-
-Spin: ${m.spinStatus}<br>
-Birthday: ${m.birthdayStatus}<br>
-Promo: ${m.promoStatus}<br><br>
-
-Referral: ${m.referral}<br>
-Cycle Start: ${m.cycleStart}<br>
-`;
-}
-
+// =====================
+// COPY SINGLE
+// =====================
 function copyText(text){
 navigator.clipboard.writeText(text);
 alert("Copied");
 }
 
+// =====================
+// BULK COPY
+// =====================
 function copyAllPhones(){
-
 let all = membersData.map(m => m.phone).join("\n");
 navigator.clipboard.writeText(all);
 alert("All phones copied");
 }
 
 function copyAllEmails(){
-
-let all = membersData.map(m => m.email).join(";");
+let all = membersData.map(m => m.email).join("\n");
 navigator.clipboard.writeText(all);
 alert("All emails copied");
 }
 
+// =====================
+// API BASE
+// =====================
+function API(){
+return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
+}
+
+// =====================
 loadDashboard();
 loadMembers();
 
