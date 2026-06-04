@@ -2,44 +2,257 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B5 Admin Panel V1.2</title>
 
 <style>
 body{
 font-family:Arial;
 background:#f7f1e8;
-padding:30px;
+margin:0;
+padding:20px;
 color:#5e4630;
 }
 
-.box{
-background:rgba(255,255,255,0.7);
-padding:20px;
-border-radius:18px;
-margin-bottom:12px;
+.header{
+font-size:20px;
+font-weight:bold;
+margin-bottom:15px;
 }
+
+.box{
+background:white;
+padding:15px;
+border-radius:14px;
+margin-bottom:12px;
+box-shadow:0 6px 14px rgba(0,0,0,0.08);
+}
+
+input{
+width:100%;
+padding:10px;
+margin-bottom:8px;
+border-radius:8px;
+border:1px solid #ddd;
+}
+
+button{
+padding:10px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+background:#6b4e36;
+color:white;
+margin-top:5px;
+}
+
+.small{
+font-size:12px;
+color:#888;
+}
+
+.row{
+padding:8px 0;
+border-bottom:1px solid #eee;
+}
+
+.member{
+padding:10px;
+border-bottom:1px solid #eee;
+}
+
+.flex{
+display:flex;
+gap:10px;
+}
+
+.copy-btn{
+background:#444;
+font-size:12px;
+padding:5px 8px;
+margin-left:5px;
+}
+
+.hidden{
+display:none;
+}
+
+.badge{
+font-size:11px;
+background:#eee;
+padding:2px 6px;
+border-radius:6px;
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>📊 Admin Panel</h2>
+<div class="header">📊 B5 Admin Panel V1.2</div>
+
+<div class="box">
+<b>Dashboard</b>
+<div id="stats">Loading...</div>
+</div>
+
+<div class="box">
+<b>Search Member</b>
+<input id="searchInput" placeholder="Name / Phone / Email">
+<button onclick="loadMembers()">Search</button>
+<button onclick="copyAllPhones()">📱 Copy Phones</button>
+<button onclick="copyAllEmails()">📧 Copy Emails</button>
+</div>
 
 <div class="box">
 <b>Members</b>
-<div>Coming from Google Sheets</div>
+<div id="members">Loading...</div>
 </div>
 
-<div class="box">
-<b>Spin Logs</b>
-<div>Tracking system ready later</div>
+<div class="box hidden" id="detailBox">
+<b>Member Detail</b>
+<div id="detail"></div>
 </div>
 
-<div class="box">
-<b>Rewards Control</b>
-<div>Manual adjustment tools</div>
+<script>
+
+let membersData = [];
+
+async function loadDashboard(){
+
+let res = await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_get"
+);
+
+let data = await res.json();
+
+document.getElementById("stats").innerHTML =
+"Total Members: <b>" + data.totalMembers + "</b>";
+
+}
+
+async function loadMembers(){
+
+let res = await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_members"
+);
+
+let data = await res.json();
+
+membersData = data.members;
+
+renderMembers(membersData);
+
+}
+
+function renderMembers(list){
+
+let keyword = document.getElementById("searchInput").value.toLowerCase();
+
+let html = "";
+
+list.forEach(m => {
+
+if(keyword &&
+!(m.name.toLowerCase().includes(keyword) ||
+m.phone.includes(keyword) ||
+m.email.toLowerCase().includes(keyword)))
+return;
+
+html += `
+<div class="member">
+<b>${m.name}</b><br>
+${m.phone}
+<button class="copy-btn" onclick="copyText('${m.phone}')">Copy</button><br>
+${m.email}
+<button class="copy-btn" onclick="copyText('${m.email}')">Copy</button><br>
+Points: <b>${m.points}</b><br>
+
+<button onclick="viewMember(${m.row})">View</button>
+<button onclick="editBasic(${m.row})">Edit</button>
 </div>
+`;
+});
+
+document.getElementById("members").innerHTML = html;
+
+}
+
+async function viewMember(row){
+
+let res = await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=" + row
+);
+
+let data = await res.json();
+
+let m = data.member;
+
+document.getElementById("detailBox").classList.remove("hidden");
+
+document.getElementById("detail").innerHTML = `
+Name: ${m.name}<br>
+Phone: ${m.phone}<br>
+Email: ${m.email}<br>
+Birthday: ${m.birthday}<br><br>
+
+Points: ${m.points}<br><br>
+
+Spin: ${m.spinStatus}<br>
+Birthday: ${m.birthdayStatus}<br>
+Promo: ${m.promoStatus}<br><br>
+
+Referral: ${m.referral}<br>
+Cycle Start: ${m.cycleStart}<br>
+`;
+
+}
+
+async function editBasic(row){
+
+let name = prompt("Name:");
+let phone = prompt("Phone:");
+let email = prompt("Email:");
+
+if(!name || !phone || !email) return;
+
+await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member"
++ "&row=" + row
++ "&name=" + encodeURIComponent(name)
++ "&phone=" + encodeURIComponent(phone)
++ "&email=" + encodeURIComponent(email)
+);
+
+alert("Updated");
+
+loadMembers();
+
+}
+
+function copyText(text){
+navigator.clipboard.writeText(text);
+alert("Copied");
+}
+
+function copyAllPhones(){
+
+let all = membersData.map(m => m.phone).join("\n");
+navigator.clipboard.writeText(all);
+alert("All phones copied");
+}
+
+function copyAllEmails(){
+
+let all = membersData.map(m => m.email).join(";");
+navigator.clipboard.writeText(all);
+alert("All emails copied");
+}
+
+loadDashboard();
+loadMembers();
+
+</script>
 
 </body>
 </html>
