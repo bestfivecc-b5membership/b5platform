@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin V3 CRM</title>
+<title>B5 Admin V4 FINAL</title>
 
 <style>
 
@@ -64,7 +64,6 @@ font-size:12px;
 .table th, .table td{
 border-bottom:1px solid #eee;
 padding:6px;
-text-align:left;
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
@@ -81,29 +80,31 @@ z-index:5;
 background:#fff8ef;
 }
 
-.pagination{
-display:flex;
-gap:5px;
-flex-wrap:wrap;
-margin-top:10px;
+.modal{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:999;
 }
 
-.page-btn{
-padding:5px 8px;
-background:#ddd;
-border:none;
-border-radius:5px;
-cursor:pointer;
-font-size:11px;
+.modal-box{
+background:white;
+padding:15px;
+width:90%;
+max-width:420px;
+border-radius:12px;
 }
 
-.page-btn.active{
-background:#6b4e36;
-color:white;
+.modal input{
+margin-bottom:8px;
 }
 
 .small{
-font-size:11px;
+font-size:12px;
 color:#777;
 }
 
@@ -112,7 +113,7 @@ color:#777;
 
 <body>
 
-<div class="header">📊 B5 Admin V3 CRM</div>
+<div class="header">📊 B5 Admin V4 FINAL</div>
 
 <div class="box">
 
@@ -133,26 +134,42 @@ color:#777;
 </div>
 
 <div class="box">
-<div id="table"></div>
-<div id="pagination" class="pagination"></div>
-<div class="small" id="info"></div>
+<div id="table">Loading...</div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal" id="modal">
+
+<div class="modal-box">
+
+<h3>Member Detail</h3>
+
+<input id="m_name" placeholder="Name">
+<input id="m_phone" placeholder="Phone">
+<input id="m_email" placeholder="Email">
+<input id="m_points" placeholder="Points">
+
+<div class="toolbar">
+
+<button onclick="saveEdit()">💾 Save</button>
+<button onclick="closeModal()">Close</button>
+
+</div>
+
+</div>
+
 </div>
 
 <script>
 
 let data = [];
 let selected = new Set();
-let page = 1;
-let perPage = 20;
+let currentEditPhone = null;
 
 const API = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 
-// =====================
-// LOAD
-// =====================
+// ================= LOAD =================
 async function load(){
-
-document.getElementById("table").innerHTML="Loading...";
 
 let res = await fetch(API+"?mode=admin_members");
 let json = await res.json();
@@ -162,31 +179,10 @@ data = json.members || [];
 render();
 }
 
-// =====================
-// FILTER
-// =====================
-function filtered(){
-
-let k = document.getElementById("searchInput").value.toLowerCase();
-
-return data.filter(m =>
-m.name.toLowerCase().includes(k) ||
-m.phone.includes(k) ||
-m.email.toLowerCase().includes(k)
-);
-}
-
-// =====================
-// RENDER TABLE
-// =====================
+// ================= RENDER =================
 function render(){
 
-let list = filtered();
-
-let start = (page-1)*perPage;
-let end = start + perPage;
-
-let pageData = list.slice(start,end);
+let k = document.getElementById("searchInput").value.toLowerCase();
 
 let html = `
 <table class="table">
@@ -196,10 +192,17 @@ let html = `
 <th>Phone</th>
 <th>Email</th>
 <th>Pts</th>
+<th>Action</th>
 </tr>
 `;
 
-pageData.forEach(m=>{
+data.forEach(m=>{
+
+if(k &&
+!(m.name.toLowerCase().includes(k) ||
+m.phone.includes(k) ||
+m.email.toLowerCase().includes(k)))
+return;
 
 html += `
 <tr class="row-hover">
@@ -215,6 +218,11 @@ onchange="toggle('${m.phone}')">
 <td>${m.email}</td>
 <td>${m.points}</td>
 
+<td>
+<button onclick="view('${m.phone}')">View</button>
+<button onclick="edit('${m.phone}')">Edit</button>
+</td>
+
 </tr>
 `;
 });
@@ -222,79 +230,87 @@ onchange="toggle('${m.phone}')">
 html += "</table>";
 
 document.getElementById("table").innerHTML = html;
-
-renderPagination(list);
 }
 
-// =====================
-// PAGINATION
-// =====================
-function renderPagination(list){
+// ================= VIEW =================
+function view(phone){
 
-let pages = Math.ceil(list.length / perPage);
+let m = data.find(x=>x.phone===phone);
 
-let html = "";
-
-for(let i=1;i<=pages;i++){
-
-html += `
-<button class="page-btn ${i===page?'active':''}"
-onclick="goto(${i})">${i}</button>
-`;
+alert(
+"Name: "+m.name+"\n"+
+"Phone: "+m.phone+"\n"+
+"Email: "+m.email+"\n"+
+"Points: "+m.points
+);
 }
 
-document.getElementById("pagination").innerHTML = html;
+// ================= EDIT =================
+function edit(phone){
 
-document.getElementById("info").innerText =
-`Total: ${list.length} | Page ${page} / ${pages}`;
+let m = data.find(x=>x.phone===phone);
+
+currentEditPhone = phone;
+
+document.getElementById("m_name").value = m.name;
+document.getElementById("m_phone").value = m.phone;
+document.getElementById("m_email").value = m.email;
+document.getElementById("m_points").value = m.points;
+
+document.getElementById("modal").style.display="flex";
 }
 
-function goto(p){
-page = p;
-render();
+function closeModal(){
+document.getElementById("modal").style.display="none";
 }
 
-// =====================
-// SEARCH LIVE
-// =====================
-document.getElementById("searchInput")
-.addEventListener("input", ()=> {
-page = 1;
-render();
+// ================= SAVE =================
+async function saveEdit(){
+
+let payload = {
+mode:"admin_update",
+phone:currentEditPhone,
+name:document.getElementById("m_name").value,
+newPhone:document.getElementById("m_phone").value,
+email:document.getElementById("m_email").value,
+points:document.getElementById("m_points").value
+};
+
+await fetch(API,{
+method:"POST",
+headers:{"Content-Type":"application/x-www-form-urlencoded"},
+body:new URLSearchParams(payload)
 });
 
-// =====================
-// SELECT
-// =====================
+// update local
+let m = data.find(x=>x.phone===currentEditPhone);
+
+m.name = payload.name;
+m.phone = payload.newPhone;
+m.email = payload.email;
+m.points = payload.points;
+
+closeModal();
+render();
+}
+
+// ================= TOGGLE =================
 function toggle(phone){
 if(selected.has(phone)) selected.delete(phone);
 else selected.add(phone);
-render();
 }
 
-function selectAll(){
-filtered().forEach(m=>selected.add(m.phone));
-render();
-}
-
-function clearSelect(){
-selected.clear();
-render();
-}
-
-// =====================
-// COPY
-// =====================
+// ================= COPY =================
 function copyPhones(){
 let arr = data.filter(m=>selected.has(m.phone)).map(m=>m.phone);
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied phones: "+arr.length);
+alert("Copied "+arr.length);
 }
 
 function copyEmails(){
 let arr = data.filter(m=>selected.has(m.phone)).map(m=>m.email);
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied emails: "+arr.length);
+alert("Copied "+arr.length);
 }
 
 function copyFull(){
@@ -302,12 +318,10 @@ let arr = data.filter(m=>selected.has(m.phone))
 .map(m=>`${m.name} | ${m.phone} | ${m.email} | ${m.points}`);
 
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied: "+arr.length);
+alert("Copied "+arr.length);
 }
 
-// =====================
-// EXPORT
-// =====================
+// ================= EXPORT =================
 function exportCSV(){
 
 let rows = [["Name","Phone","Email","Points"]];
@@ -321,13 +335,17 @@ let csv = rows.map(r=>r.join(",")).join("\n");
 let blob = new Blob([csv],{type:"text/csv"});
 let url = URL.createObjectURL(blob);
 
-let a = document.createElement("a");
-a.href = url;
-a.download = "members.csv";
+let a=document.createElement("a");
+a.href=url;
+a.download="members.csv";
 a.click();
 }
 
-// =====================
+// ================= SEARCH LIVE =================
+document.getElementById("searchInput")
+.addEventListener("input",render);
+
+// ================= INIT =================
 load();
 
 </script>
