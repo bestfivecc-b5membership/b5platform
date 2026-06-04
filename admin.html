@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>B5 Admin Panel V5.1</title>
+<title>B5 Admin Panel V5.1 FIX</title>
 
 <style>
 
@@ -67,13 +67,28 @@ margin:2px;
 .btn{background:#6b4e36;color:white;}
 .btn2{background:#28a745;color:white;}
 .btn3{background:#ff9800;color:white;}
-.btn4{background:#555;color:white;}
+.btn4{background:#444;color:white;}
 
 input{
 padding:6px;
 font-size:12px;
 width:100%;
 box-sizing:border-box;
+border-radius:6px;
+}
+
+/* VIEW MODE */
+.viewInput{
+border:none;
+background:transparent;
+color:#4b3b2a;
+font-weight:500;
+}
+
+/* EDIT MODE */
+.editInput{
+border:1px solid #6b4e36;
+background:#fffaf5;
 }
 
 .topBar{
@@ -83,32 +98,27 @@ gap:6px;
 margin-bottom:10px;
 }
 
-input[disabled]{
-background:#f5f5f5;
-color:#999;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V5.1</div>
+<div class="header">📊 B5 Admin Panel V5.1 FIX</div>
 
 <div class="container">
 
 <div class="topBar">
 
 <input id="searchInput" placeholder="Search name / phone / email"
-style="max-width:260px;padding:6px;font-size:12px;">
+style="max-width:260px;">
 
 <button class="btn" onclick="searchNow()">🔍 Search</button>
 <button class="btn" onclick="loadMembers()">🔄 Refresh</button>
 
-<button class="btn4" onclick="toggleEditMode()">✏️ Edit Mode</button>
+<button class="btn4" onclick="toggleEdit()">✏️ Toggle Edit</button>
 
-<button class="btn2" onclick="copySelectedPhones()">📱 Copy Phones</button>
-<button class="btn2" onclick="copySelectedEmails()">📧 Copy Emails</button>
+<button class="btn2" onclick="copyPhones()">📱 Copy Phones</button>
+<button class="btn2" onclick="copyEmails()">📧 Copy Emails</button>
 <button class="btn3" onclick="exportCSV()">⬇ Export</button>
 
 </div>
@@ -122,7 +132,7 @@ style="max-width:260px;padding:6px;font-size:12px;">
 <th>Phone</th>
 <th>Email</th>
 <th>Points</th>
-<th>Actions</th>
+<th>Action</th>
 </tr>
 </thead>
 
@@ -138,8 +148,6 @@ let members = [];
 let filtered = [];
 let editMode = false;
 
-// =========================
-// LOAD
 // =========================
 async function loadMembers(){
 
@@ -160,18 +168,9 @@ render();
 }
 
 // =========================
-// SEARCH
-// =========================
 function searchNow(){
 
-let k = document.getElementById("searchInput")
-.value.toLowerCase().trim();
-
-if(!k){
-filtered = members;
-render();
-return;
-}
+let k = document.getElementById("searchInput").value.toLowerCase();
 
 filtered = members.filter(m =>
 (m.name||"").toLowerCase().includes(k) ||
@@ -184,15 +183,11 @@ render();
 }
 
 // =========================
-// TOGGLE EDIT MODE
-// =========================
-function toggleEditMode(){
+function toggleEdit(){
 editMode = !editMode;
 render();
 }
 
-// =========================
-// RENDER
 // =========================
 function render(){
 
@@ -206,26 +201,26 @@ html += `
 
 <td>
 <input value="${m.name}"
-${editMode ? "" : "disabled"}
-onchange="updateField(${i},'name',this.value)">
+class="${editMode ? 'editInput' : 'viewInput'}"
+${editMode ? `onchange="update(${i},'name',this.value)"` : "readonly"}>
 </td>
 
 <td>
 <input value="${m.phone}"
-${editMode ? "" : "disabled"}
-onchange="updateField(${i},'phone',this.value)">
+class="${editMode ? 'editInput' : 'viewInput'}"
+${editMode ? `onchange="update(${i},'phone',this.value)"` : "readonly"}>
 </td>
 
 <td>
 <input value="${m.email}"
-${editMode ? "" : "disabled"}
-onchange="updateField(${i},'email',this.value)">
+class="${editMode ? 'editInput' : 'viewInput'}"
+${editMode ? `onchange="update(${i},'email',this.value)"` : "readonly"}>
 </td>
 
 <td>
 <input value="${m.points}"
-${editMode ? "" : "disabled"}
-onchange="updateField(${i},'points',this.value)">
+class="${editMode ? 'editInput' : 'viewInput'}"
+${editMode ? `onchange="update(${i},'points',this.value)"` : "readonly"}>
 </td>
 
 <td>
@@ -242,9 +237,7 @@ document.getElementById("tbody").innerHTML = html;
 }
 
 // =========================
-// AUTO SAVE (FIXED + POINTS SUPPORT)
-// =========================
-async function updateField(i,field,value){
+async function update(i,field,value){
 
 if(!editMode) return;
 
@@ -257,31 +250,12 @@ let url =
 + `&name=${encodeURIComponent(m.name)}`
 + `&phone=${encodeURIComponent(m.phone)}`
 + `&email=${encodeURIComponent(m.email)}`
-+ `&points=${encodeURIComponent(m.points || 0)}`;
++ `&points=${encodeURIComponent(m.points)}`;
 
 await fetch(url);
 
 }
 
-// =========================
-// VIEW
-// =========================
-async function view(row){
-
-let res = await fetch(
-`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=${row}`
-);
-
-let data = await res.json();
-
-alert(
-`Name: ${data.member.name}\nPhone: ${data.member.phone}\nEmail: ${data.member.email}\nPoints: ${data.member.points}`
-);
-
-}
-
-// =========================
-// SELECT ALL
 // =========================
 function toggleAll(el){
 document.querySelectorAll(".chk").forEach(c=>{
@@ -290,8 +264,6 @@ c.checked = el.checked;
 }
 
 // =========================
-// COPY
-// =========================
 function getSelected(){
 return filtered.filter((m,i)=>{
 let el = document.querySelector(`.chk[data-i="${i}"]`);
@@ -299,22 +271,22 @@ return el && el.checked;
 });
 }
 
-function copySelectedPhones(){
+// =========================
+function copyPhones(){
 navigator.clipboard.writeText(
 getSelected().map(m=>m.phone).join("\n")
 );
-alert("Phones copied");
-}
-
-function copySelectedEmails(){
-navigator.clipboard.writeText(
-getSelected().map(m=>m.email).join("\n")
-);
-alert("Emails copied");
+alert("Copied phones");
 }
 
 // =========================
-// EXPORT
+function copyEmails(){
+navigator.clipboard.writeText(
+getSelected().map(m=>m.email).join("\n")
+);
+alert("Copied emails");
+}
+
 // =========================
 function exportCSV(){
 
