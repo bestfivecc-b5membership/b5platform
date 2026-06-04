@@ -306,6 +306,59 @@ a.click();
 
 }
 
+// =========================
+// VIEW MEMBER DETAIL
+// =========================
+async function view(row){
+
+try{
+
+let res = await fetch(
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=${row}`
+);
+
+let data = await res.json();
+
+if(data.status !== "ok"){
+
+alert("Member not found");
+return;
+
+}
+
+let m = data.member;
+
+alert(
+`Name: ${m.name || ""}
+
+Phone: ${m.phone || ""}
+
+Email: ${m.email || ""}
+
+Birthday: ${m.birthday || ""}
+
+Reward: ${m.reward || ""}
+
+Points: ${m.points || 0}
+
+Referral: ${m.referral || ""}
+
+Spin Status: ${m.spinStatus || ""}
+
+Birthday Status: ${m.birthdayStatus || ""}
+
+Promo Status: ${m.promoStatus || ""}`
+);
+
+}catch(err){
+
+console.log(err);
+alert("View Error");
+
+}
+
+}
+
 loadMembers();
 
 </script>
