@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>B5 Admin Panel V5 Stable</title>
+<title>B5 Admin Panel V5</title>
 
 <style>
 
@@ -11,12 +11,12 @@ body{
 margin:0;
 font-family:Arial;
 background:#f6f1e8;
-color:#3d2f22;
+color:#4b3b2a;
 }
 
 .header{
 background:#6b4e36;
-color:#fff;
+color:white;
 padding:14px;
 text-align:center;
 font-weight:bold;
@@ -27,64 +27,59 @@ padding:10px;
 overflow-x:auto;
 }
 
-/* TOP BAR */
-.topBar{
-display:flex;
-flex-wrap:wrap;
-gap:8px;
-margin-bottom:10px;
-align-items:center;
+.tableWrap{
+overflow-x:auto;
+background:white;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
-input,button{
-padding:6px;
-font-size:12px;
-border-radius:6px;
-border:1px solid #ddd;
-}
-
-button{
-cursor:pointer;
-border:none;
-}
-
-.btn{background:#6b4e36;color:white;}
-.btn2{background:#28a745;color:white;}
-.btn3{background:#ff9800;color:white;}
-
-/* TABLE */
 table{
 width:100%;
 border-collapse:collapse;
 min-width:900px;
-background:white;
 }
 
 th,td{
 padding:10px;
-font-size:13px;
 border-bottom:1px solid #eee;
+font-size:13px;
 white-space:nowrap;
+text-align:left;
 }
 
 th{
 background:#f3ede6;
 position:sticky;
 top:0;
+z-index:2;
 }
 
-.editInput{
-width:100%;
-padding:5px;
+button{
+padding:6px 10px;
 font-size:12px;
-border:1px solid #ccc;
-border-radius:4px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+margin:2px;
 }
 
-.smallBtn{
-padding:4px 6px;
-font-size:11px;
-margin:2px;
+.btn{background:#6b4e36;color:white;}
+.btn2{background:#28a745;color:white;}
+.btn3{background:#ff9800;color:white;}
+
+input{
+padding:6px;
+font-size:12px;
+width:100%;
+box-sizing:border-box;
+}
+
+.topBar{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-bottom:10px;
 }
 
 </style>
@@ -92,24 +87,26 @@ margin:2px;
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V5 (Stable)</div>
+<div class="header">📊 B5 Admin Panel V5</div>
 
 <div class="container">
 
+<!-- TOP BAR -->
 <div class="topBar">
 
-<input id="searchBox" placeholder="Search name / phone / email">
+<input id="searchInput" placeholder="Search name / phone / email"
+style="max-width:260px;padding:6px;font-size:12px;">
 
-<button class="btn" onclick="search()">Search</button>
-<button class="btn" onclick="load()">Refresh</button>
-<button class="btn2" onclick="toggleEdit()">Edit Mode</button>
+<button class="btn" onclick="searchNow()">🔍 Search</button>
+<button class="btn" onclick="loadMembers()">🔄 Refresh</button>
 
-<button class="btn2" onclick="copySelectedPhones()">Copy Phones</button>
-<button class="btn2" onclick="copySelectedEmails()">Copy Emails</button>
-<button class="btn3" onclick="exportCSV()">Export</button>
+<button class="btn2" onclick="copySelectedPhones()">📱 Copy Phones</button>
+<button class="btn2" onclick="copySelectedEmails()">📧 Copy Emails</button>
+<button class="btn3" onclick="exportCSV()">⬇ Export</button>
 
 </div>
 
+<div class="tableWrap">
 <table>
 <thead>
 <tr>
@@ -117,12 +114,14 @@ margin:2px;
 <th>Name</th>
 <th>Phone</th>
 <th>Email</th>
-<th>Action</th>
+<th>Points</th>
+<th>Actions</th>
 </tr>
 </thead>
 
 <tbody id="tbody"></tbody>
 </table>
+</div>
 
 </div>
 
@@ -130,18 +129,18 @@ margin:2px;
 
 let members = [];
 let filtered = [];
-let editMode = false;
-
-const API =
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 
 // =========================
-async function load(){
+// LOAD
+// =========================
+async function loadMembers(){
 
 document.getElementById("tbody").innerHTML =
-"<tr><td colspan='5'>Loading...</td></tr>";
+"<tr><td colspan='6'>Loading...</td></tr>";
 
-let res = await fetch(API + "?mode=admin_members");
+let res = await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_members"
+);
 
 let data = await res.json();
 
@@ -153,81 +152,18 @@ render();
 }
 
 // =========================
-function render(){
-
-let html = "";
-
-filtered.forEach((m,i)=>{
-
-html += `
-<tr>
-
-<td><input type="checkbox" class="chk" data-i="${i}"></td>
-
-<td>
-${editMode
-? `<input class="editInput" value="${m.name}" onchange="m.name=this.value">`
-: m.name}
-</td>
-
-<td>
-${editMode
-? `<input class="editInput" value="${m.phone}" onchange="m.phone=this.value">`
-: m.phone}
-</td>
-
-<td>
-${editMode
-? `<input class="editInput" value="${m.email}" onchange="m.email=this.value">`
-: m.email}
-</td>
-
-<td>
-${editMode
-? `<button class="btn2 smallBtn" onclick="save(${i})">Save</button>`
-: `<span style="color:#888">View</span>`}
-</td>
-
-</tr>
-`;
-
-});
-
-document.getElementById("tbody").innerHTML = html;
-
-}
-
+// SEARCH (CLIENT SIDE)
 // =========================
-function toggleEdit(){
-editMode = !editMode;
+function searchNow(){
+
+let k = document.getElementById("searchInput")
+.value.toLowerCase().trim();
+
+if(!k){
+filtered = members;
 render();
+return;
 }
-
-// =========================
-async function save(i){
-
-let m = filtered[i];
-
-let url =
-API
-+ "?mode=admin_update_member"
-+ `&row=${m.row}`
-+ `&name=${encodeURIComponent(m.name)}`
-+ `&phone=${encodeURIComponent(m.phone)}`
-+ `&email=${encodeURIComponent(m.email)}`;
-
-await fetch(url);
-
-alert("Saved");
-
-load();
-
-}
-
-// =========================
-function search(){
-
-let k = document.getElementById("searchBox").value.toLowerCase();
 
 filtered = members.filter(m =>
 (m.name||"").toLowerCase().includes(k) ||
@@ -240,51 +176,138 @@ render();
 }
 
 // =========================
-function toggleAll(el){
+// RENDER
+// =========================
+function render(){
 
+let html = "";
+
+filtered.forEach((m,i)=>{
+
+html += `
+<tr>
+<td><input type="checkbox" class="chk" data-i="${i}"></td>
+
+<td>
+<input value="${m.name}"
+onchange="updateField(${i},'name',this.value)">
+</td>
+
+<td>
+<input value="${m.phone}"
+onchange="updateField(${i},'phone',this.value)">
+</td>
+
+<td>
+<input value="${m.email}"
+onchange="updateField(${i},'email',this.value)">
+</td>
+
+<td>
+<input value="${m.points}"
+onchange="updateField(${i},'points',this.value)">
+</td>
+
+<td>
+<button class="btn" onclick="view(${m.row})">View</button>
+</td>
+
+</tr>
+`;
+
+});
+
+document.getElementById("tbody").innerHTML = html;
+
+}
+
+// =========================
+// INLINE AUTO SAVE (STABLE)
+// =========================
+async function updateField(i,field,value){
+
+let m = filtered[i];
+m[field] = value;
+
+// update sheet
+let url =
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
++ `&row=${m.row}`
++ `&name=${encodeURIComponent(m.name)}`
++ `&phone=${encodeURIComponent(m.phone)}`
++ `&email=${encodeURIComponent(m.email)}`;
+
+await fetch(url);
+
+}
+
+// =========================
+// VIEW
+// =========================
+async function view(row){
+
+let res = await fetch(
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=${row}`
+);
+
+let data = await res.json();
+
+alert(
+`Name: ${data.member.name}\nPhone: ${data.member.phone}\nEmail: ${data.member.email}\nPoints: ${data.member.points}`
+);
+
+}
+
+// =========================
+// SELECT ALL
+// =========================
+function toggleAll(el){
 document.querySelectorAll(".chk").forEach(c=>{
 c.checked = el.checked;
 });
-
 }
 
+// =========================
+// GET SELECTED
+// =========================
+function getSelected(){
+
+let list = [];
+
+document.querySelectorAll(".chk:checked").forEach(c=>{
+let i = c.dataset.i;
+list.push(filtered[i]);
+});
+
+return list;
+}
+
+// =========================
+// COPY
 // =========================
 function copySelectedPhones(){
-
-let list = [];
-
-document.querySelectorAll(".chk:checked").forEach(c=>{
-let i = c.dataset.i;
-list.push(filtered[i].phone);
-});
-
-navigator.clipboard.writeText(list.join("\n"));
+navigator.clipboard.writeText(
+getSelected().map(m=>m.phone).join("\n")
+);
 alert("Phones copied");
+}
 
+function copySelectedEmails(){
+navigator.clipboard.writeText(
+getSelected().map(m=>m.email).join("\n")
+);
+alert("Emails copied");
 }
 
 // =========================
-function copySelectedEmails(){
-
-let list = [];
-
-document.querySelectorAll(".chk:checked").forEach(c=>{
-let i = c.dataset.i;
-list.push(filtered[i].email);
-});
-
-navigator.clipboard.writeText(list.join("\n"));
-alert("Emails copied");
-
-}
-
+// EXPORT
 // =========================
 function exportCSV(){
 
-let csv = "Name,Phone,Email\n";
+let csv = "Name,Phone,Email,Points\n";
 
 members.forEach(m=>{
-csv += `${m.name},${m.phone},${m.email}\n`;
+csv += `${m.name},${m.phone},${m.email},${m.points}\n`;
 });
 
 let blob = new Blob([csv], {type:"text/csv"});
@@ -297,7 +320,7 @@ a.click();
 
 }
 
-load();
+loadMembers();
 
 </script>
 
