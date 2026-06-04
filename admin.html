@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin V2 CRM</title>
+<title>B5 Admin V3 CRM</title>
 
 <style>
 
@@ -65,11 +65,9 @@ font-size:12px;
 border-bottom:1px solid #eee;
 padding:6px;
 text-align:left;
-
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
-max-width:160px;
 }
 
 .table th{
@@ -83,13 +81,29 @@ z-index:5;
 background:#fff8ef;
 }
 
-.checkbox{
-transform:scale(1.1);
+.pagination{
+display:flex;
+gap:5px;
+flex-wrap:wrap;
+margin-top:10px;
 }
 
-.loading{
-padding:10px;
-font-size:12px;
+.page-btn{
+padding:5px 8px;
+background:#ddd;
+border:none;
+border-radius:5px;
+cursor:pointer;
+font-size:11px;
+}
+
+.page-btn.active{
+background:#6b4e36;
+color:white;
+}
+
+.small{
+font-size:11px;
 color:#777;
 }
 
@@ -98,7 +112,7 @@ color:#777;
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V2 CRM</div>
+<div class="header">📊 B5 Admin V3 CRM</div>
 
 <div class="box">
 
@@ -109,9 +123,9 @@ color:#777;
 <button onclick="selectAll()">☑ All</button>
 <button onclick="clearSelect()">✖ Clear</button>
 
-<button onclick="copySelectedPhones()">📱 Phones</button>
-<button onclick="copySelectedEmails()">📧 Emails</button>
-<button onclick="copyAllInfo()">📋 Full Copy</button>
+<button onclick="copyPhones()">📱 Phones</button>
+<button onclick="copyEmails()">📧 Emails</button>
+<button onclick="copyFull()">📋 Full</button>
 <button onclick="exportCSV()">⬇ Export</button>
 
 </div>
@@ -119,40 +133,60 @@ color:#777;
 </div>
 
 <div class="box">
-<div id="members">Loading...</div>
+<div id="table"></div>
+<div id="pagination" class="pagination"></div>
+<div class="small" id="info"></div>
 </div>
 
 <script>
 
-let membersData = [];
+let data = [];
 let selected = new Set();
+let page = 1;
+let perPage = 20;
 
-function API(){
-return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
+const API = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
+
+// =====================
+// LOAD
+// =====================
+async function load(){
+
+document.getElementById("table").innerHTML="Loading...";
+
+let res = await fetch(API+"?mode=admin_members");
+let json = await res.json();
+
+data = json.members || [];
+
+render();
 }
 
 // =====================
-// LOAD DATA
+// FILTER
 // =====================
-async function loadMembers(){
+function filtered(){
 
-document.getElementById("members").innerHTML =
-"<div class='loading'>Loading...</div>";
+let k = document.getElementById("searchInput").value.toLowerCase();
 
-let res = await fetch(API()+"?mode=admin_members");
-let data = await res.json();
-
-membersData = data.members || [];
-
-renderTable(membersData);
+return data.filter(m =>
+m.name.toLowerCase().includes(k) ||
+m.phone.includes(k) ||
+m.email.toLowerCase().includes(k)
+);
 }
 
 // =====================
 // RENDER TABLE
 // =====================
-function renderTable(list){
+function render(){
 
-let keyword = document.getElementById("searchInput").value.toLowerCase();
+let list = filtered();
+
+let start = (page-1)*perPage;
+let end = start + perPage;
+
+let pageData = list.slice(start,end);
 
 let html = `
 <table class="table">
@@ -165,21 +199,15 @@ let html = `
 </tr>
 `;
 
-list.forEach(m => {
-
-if(keyword &&
-!(m.name.toLowerCase().includes(keyword) ||
-m.phone.includes(keyword) ||
-m.email.toLowerCase().includes(keyword)))
-return;
+pageData.forEach(m=>{
 
 html += `
 <tr class="row-hover">
 
 <td>
-<input class="checkbox" type="checkbox"
-onchange="toggle('${m.phone}')"
-${selected.has(m.phone) ? "checked" : ""}>
+<input type="checkbox"
+${selected.has(m.phone)?"checked":""}
+onchange="toggle('${m.phone}')">
 </td>
 
 <td>${m.name}</td>
@@ -193,97 +221,104 @@ ${selected.has(m.phone) ? "checked" : ""}>
 
 html += "</table>";
 
-document.getElementById("members").innerHTML = html;
+document.getElementById("table").innerHTML = html;
+
+renderPagination(list);
 }
 
 // =====================
-// INSTANT SEARCH
+// PAGINATION
+// =====================
+function renderPagination(list){
+
+let pages = Math.ceil(list.length / perPage);
+
+let html = "";
+
+for(let i=1;i<=pages;i++){
+
+html += `
+<button class="page-btn ${i===page?'active':''}"
+onclick="goto(${i})">${i}</button>
+`;
+}
+
+document.getElementById("pagination").innerHTML = html;
+
+document.getElementById("info").innerText =
+`Total: ${list.length} | Page ${page} / ${pages}`;
+}
+
+function goto(p){
+page = p;
+render();
+}
+
+// =====================
+// SEARCH LIVE
 // =====================
 document.getElementById("searchInput")
-.addEventListener("input", function(){
-renderTable(membersData);
+.addEventListener("input", ()=> {
+page = 1;
+render();
 });
 
 // =====================
-// SELECT TOGGLE
+// SELECT
 // =====================
 function toggle(phone){
-
 if(selected.has(phone)) selected.delete(phone);
 else selected.add(phone);
-
-renderTable(membersData);
+render();
 }
 
-// =====================
-// SELECT ALL
-// =====================
 function selectAll(){
-selected = new Set(membersData.map(m => m.phone));
-renderTable(membersData);
+filtered().forEach(m=>selected.add(m.phone));
+render();
 }
 
-// =====================
-// CLEAR
-// =====================
 function clearSelect(){
 selected.clear();
-renderTable(membersData);
+render();
 }
 
 // =====================
-// COPY PHONE
+// COPY
 // =====================
-function copySelectedPhones(){
+function copyPhones(){
+let arr = data.filter(m=>selected.has(m.phone)).map(m=>m.phone);
+navigator.clipboard.writeText(arr.join("\n"));
+alert("Copied phones: "+arr.length);
+}
 
-let arr = membersData
-.filter(m => selected.has(m.phone))
-.map(m => m.phone);
+function copyEmails(){
+let arr = data.filter(m=>selected.has(m.phone)).map(m=>m.email);
+navigator.clipboard.writeText(arr.join("\n"));
+alert("Copied emails: "+arr.length);
+}
+
+function copyFull(){
+let arr = data.filter(m=>selected.has(m.phone))
+.map(m=>`${m.name} | ${m.phone} | ${m.email} | ${m.points}`);
 
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Phones: " + arr.length);
+alert("Copied: "+arr.length);
 }
 
 // =====================
-// COPY EMAIL
-// =====================
-function copySelectedEmails(){
-
-let arr = membersData
-.filter(m => selected.has(m.phone))
-.map(m => m.email);
-
-navigator.clipboard.writeText(arr.join("\n"));
-alert("Emails: " + arr.length);
-}
-
-// =====================
-// COPY ALL INFO
-// =====================
-function copyAllInfo(){
-
-let arr = membersData
-.filter(m => selected.has(m.phone))
-.map(m => `${m.name} | ${m.phone} | ${m.email} | ${m.points}`);
-
-navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied full info: " + arr.length);
-}
-
-// =====================
-// EXPORT CSV
+// EXPORT
 // =====================
 function exportCSV(){
 
 let rows = [["Name","Phone","Email","Points"]];
 
-membersData.forEach(m=>{
+data.forEach(m=>{
 rows.push([m.name,m.phone,m.email,m.points]);
 });
 
 let csv = rows.map(r=>r.join(",")).join("\n");
 
-let blob = new Blob([csv], {type:"text/csv"});
+let blob = new Blob([csv],{type:"text/csv"});
 let url = URL.createObjectURL(blob);
 
 let a = document.createElement("a");
@@ -293,7 +328,7 @@ a.click();
 }
 
 // =====================
-loadMembers();
+load();
 
 </script>
 
