@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin V1.5 CRM PRO</title>
+<title>B5 Admin V2 CRM</title>
 
 <style>
 
@@ -29,11 +29,19 @@ margin-bottom:10px;
 box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 
+input{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:1px solid #ddd;
+box-sizing:border-box;
+}
+
 .toolbar{
 display:flex;
 flex-wrap:wrap;
 gap:6px;
-margin-top:6px;
+margin-top:8px;
 }
 
 button{
@@ -44,14 +52,6 @@ cursor:pointer;
 background:#6b4e36;
 color:white;
 font-size:12px;
-}
-
-input{
-width:100%;
-padding:10px;
-border-radius:8px;
-border:1px solid #ddd;
-box-sizing:border-box;
 }
 
 .table{
@@ -65,30 +65,26 @@ font-size:12px;
 border-bottom:1px solid #eee;
 padding:6px;
 text-align:left;
-word-wrap:break-word;
+
+white-space:nowrap;
 overflow:hidden;
+text-overflow:ellipsis;
+max-width:160px;
 }
 
 .table th{
 background:#f3ede6;
 position:sticky;
 top:0;
-z-index:1;
+z-index:5;
+}
+
+.row-hover:hover{
+background:#fff8ef;
 }
 
 .checkbox{
 transform:scale(1.1);
-}
-
-.expand{
-background:#faf7f3;
-font-size:12px;
-padding:8px;
-}
-
-.small{
-font-size:11px;
-color:#888;
 }
 
 .loading{
@@ -102,7 +98,7 @@ color:#777;
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V1.5</div>
+<div class="header">📊 B5 Admin Panel V2 CRM</div>
 
 <div class="box">
 
@@ -110,23 +106,20 @@ color:#777;
 
 <div class="toolbar">
 
-<button onclick="loadMembers()">Search</button>
-<button onclick="selectAll()">Select All</button>
-<button onclick="clearSelect()">Clear</button>
+<button onclick="selectAll()">☑ All</button>
+<button onclick="clearSelect()">✖ Clear</button>
 
-<button onclick="copySelectedPhones()">Copy Phones</button>
-<button onclick="copySelectedEmails()">Copy Emails</button>
-<button onclick="copyAllInfo()">Copy ALL</button>
-<button onclick="exportCSV()">Export</button>
+<button onclick="copySelectedPhones()">📱 Phones</button>
+<button onclick="copySelectedEmails()">📧 Emails</button>
+<button onclick="copyAllInfo()">📋 Full Copy</button>
+<button onclick="exportCSV()">⬇ Export</button>
 
 </div>
 
 </div>
 
 <div class="box">
-
 <div id="members">Loading...</div>
-
 </div>
 
 <script>
@@ -138,6 +131,8 @@ function API(){
 return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 }
 
+// =====================
+// LOAD DATA
 // =====================
 async function loadMembers(){
 
@@ -153,6 +148,8 @@ renderTable(membersData);
 }
 
 // =====================
+// RENDER TABLE
+// =====================
 function renderTable(list){
 
 let keyword = document.getElementById("searchInput").value.toLowerCase();
@@ -165,7 +162,6 @@ let html = `
 <th>Phone</th>
 <th>Email</th>
 <th>Pts</th>
-<th></th>
 </tr>
 `;
 
@@ -178,7 +174,7 @@ m.email.toLowerCase().includes(keyword)))
 return;
 
 html += `
-<tr>
+<tr class="row-hover">
 
 <td>
 <input class="checkbox" type="checkbox"
@@ -191,22 +187,6 @@ ${selected.has(m.phone) ? "checked" : ""}>
 <td>${m.email}</td>
 <td>${m.points}</td>
 
-<td>
-<button onclick="toggleExpand(${m.row})">View</button>
-</td>
-
-</tr>
-
-<tr id="row-${m.row}" style="display:none">
-<td colspan="6" class="expand">
-<b>Detail:</b><br>
-Name: ${m.name}<br>
-Phone: ${m.phone}<br>
-Email: ${m.email}<br>
-Points: ${m.points}<br>
-
-<button onclick="editMember(${m.row})">Edit</button>
-</td>
 </tr>
 `;
 });
@@ -217,6 +197,16 @@ document.getElementById("members").innerHTML = html;
 }
 
 // =====================
+// INSTANT SEARCH
+// =====================
+document.getElementById("searchInput")
+.addEventListener("input", function(){
+renderTable(membersData);
+});
+
+// =====================
+// SELECT TOGGLE
+// =====================
 function toggle(phone){
 
 if(selected.has(phone)) selected.delete(phone);
@@ -226,11 +216,15 @@ renderTable(membersData);
 }
 
 // =====================
+// SELECT ALL
+// =====================
 function selectAll(){
 selected = new Set(membersData.map(m => m.phone));
 renderTable(membersData);
 }
 
+// =====================
+// CLEAR
 // =====================
 function clearSelect(){
 selected.clear();
@@ -238,32 +232,46 @@ renderTable(membersData);
 }
 
 // =====================
+// COPY PHONE
+// =====================
 function copySelectedPhones(){
-let arr = membersData.filter(m => selected.has(m.phone)).map(m => m.phone);
+
+let arr = membersData
+.filter(m => selected.has(m.phone))
+.map(m => m.phone);
+
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Phones copied: " + arr.length);
+alert("Phones: " + arr.length);
 }
 
 // =====================
+// COPY EMAIL
+// =====================
 function copySelectedEmails(){
-let arr = membersData.filter(m => selected.has(m.phone)).map(m => m.email);
+
+let arr = membersData
+.filter(m => selected.has(m.phone))
+.map(m => m.email);
+
 navigator.clipboard.writeText(arr.join("\n"));
-alert("Emails copied: " + arr.length);
+alert("Emails: " + arr.length);
 }
 
+// =====================
+// COPY ALL INFO
 // =====================
 function copyAllInfo(){
 
 let arr = membersData
 .filter(m => selected.has(m.phone))
-.map(m =>
-`${m.name} | ${m.phone} | ${m.email} | ${m.points}`
-);
+.map(m => `${m.name} | ${m.phone} | ${m.email} | ${m.points}`);
 
 navigator.clipboard.writeText(arr.join("\n"));
 alert("Copied full info: " + arr.length);
 }
 
+// =====================
+// EXPORT CSV
 // =====================
 function exportCSV(){
 
@@ -282,39 +290,6 @@ let a = document.createElement("a");
 a.href = url;
 a.download = "members.csv";
 a.click();
-}
-
-// =====================
-function toggleExpand(row){
-
-let el = document.getElementById("row-"+row);
-if(!el) return;
-
-el.style.display =
-(el.style.display==="none") ? "table-row" : "none";
-}
-
-// =====================
-async function editMember(row){
-
-let m = membersData.find(x=>x.row===row);
-if(!m) return;
-
-let name = prompt("Name", m.name);
-let phone = prompt("Phone", m.phone);
-let email = prompt("Email", m.email);
-
-await fetch(API()
-+ "?mode=admin_update_member"
-+ "&row="+row
-+ "&name="+encodeURIComponent(name||m.name)
-+ "&phone="+encodeURIComponent(phone||m.phone)
-+ "&email="+encodeURIComponent(email||m.email)
-);
-
-await loadMembers();
-
-alert("Updated");
 }
 
 // =====================
