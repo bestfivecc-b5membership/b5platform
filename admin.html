@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin Panel V1.3 FIXED</title>
+<title>B5 Admin Panel V1.4 CRM</title>
 
 <style>
+
 body{
 font-family:Arial;
 background:#f7f1e8;
@@ -22,84 +23,100 @@ margin-bottom:15px;
 
 .box{
 background:white;
-padding:15px;
-border-radius:14px;
-margin-bottom:12px;
-box-shadow:0 6px 14px rgba(0,0,0,0.08);
+padding:12px;
+border-radius:12px;
+margin-bottom:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.05);
 }
 
 input{
 width:100%;
 padding:10px;
-margin-bottom:8px;
 border-radius:8px;
 border:1px solid #ddd;
+margin-bottom:8px;
 }
 
 button{
-padding:10px;
+padding:8px 10px;
 border:none;
-border-radius:8px;
+border-radius:6px;
 cursor:pointer;
 background:#6b4e36;
 color:white;
-margin-top:5px;
+font-size:12px;
 margin-right:5px;
+}
+
+.toolbar{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-bottom:10px;
+}
+
+.table{
+width:100%;
+border-collapse:collapse;
 font-size:13px;
 }
 
+.table th, .table td{
+border-bottom:1px solid #eee;
+padding:6px 4px;
+text-align:left;
+white-space:nowrap;
+}
+
+.table th{
+background:#f3ede6;
+position:sticky;
+top:0;
+}
+
 .small{
-font-size:12px;
+font-size:11px;
 color:#888;
 }
 
-.member{
+.loading{
 padding:10px;
-border-bottom:1px solid #eee;
+font-size:13px;
+color:#777;
 }
 
-.copy-btn{
-background:#444;
-font-size:12px;
-padding:5px 8px;
-margin-left:5px;
+.checkbox{
+transform:scale(1.1);
 }
-
-.hidden{display:none;}
 
 </style>
 </head>
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V1.3 FIXED</div>
+<div class="header">📊 B5 Admin Panel V1.4 CRM</div>
 
 <div class="box">
-<b>Dashboard</b>
-<div id="stats">Loading...</div>
-</div>
 
-<div class="box">
-<b>Search Member</b>
-<input id="searchInput" placeholder="Name / Phone / Email">
+<input id="searchInput" placeholder="Search name / phone / email">
+
+<div class="toolbar">
 
 <button onclick="loadMembers()">Search</button>
-
 <button onclick="selectAll()">Select All</button>
 <button onclick="clearSelect()">Clear</button>
 
-<button onclick="copySelectedPhones()">📱 Copy Selected Phones</button>
-<button onclick="copySelectedEmails()">📧 Copy Selected Emails</button>
+<button onclick="copySelectedPhones()">Copy Phones</button>
+<button onclick="copySelectedEmails()">Copy Emails</button>
+
+</div>
+
 </div>
 
 <div class="box">
-<b>Members</b>
-<div id="members">Loading...</div>
-</div>
 
-<div class="box hidden" id="detailBox">
-<b>Member Detail</b>
-<div id="detail"></div>
+<div id="members">Loading...</div>
+
 </div>
 
 <script>
@@ -108,34 +125,40 @@ let membersData = [];
 let selected = new Set();
 
 // =====================
-// API
-// =====================
 function API(){
 return "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 }
 
 // =====================
-// LOAD MEMBERS
-// =====================
 async function loadMembers(){
+
+document.getElementById("members").innerHTML =
+"<div class='loading'>Loading members...</div>";
 
 let res = await fetch(API()+"?mode=admin_members");
 let data = await res.json();
 
 membersData = data.members || [];
 
-renderMembers(membersData);
+renderTable(membersData);
 }
 
 // =====================
-// RENDER MEMBERS
-// =====================
-function renderMembers(list){
+function renderTable(list){
 
 let keyword = document.getElementById("searchInput").value.toLowerCase();
 
-let container = document.getElementById("members");
-container.innerHTML = "";
+let html = `
+<table class="table">
+<tr>
+<th></th>
+<th>Name</th>
+<th>Phone</th>
+<th>Email</th>
+<th>Points</th>
+<th>Action</th>
+</tr>
+`;
 
 list.forEach(m => {
 
@@ -145,38 +168,36 @@ m.phone.includes(keyword) ||
 m.email.toLowerCase().includes(keyword)))
 return;
 
-let checked = selected.has(m.phone) ? "checked" : "";
+html += `
+<tr>
 
-container.innerHTML += `
-<div class="member">
+<td>
+<input class="checkbox" type="checkbox"
+onchange="toggle('${m.phone}')"
+${selected.has(m.phone) ? "checked" : ""}>
+</td>
 
-<input type="checkbox"
-onchange="toggleSelect('${m.phone}')"
-${checked}>
+<td>${m.name}</td>
+<td>${m.phone}</td>
+<td>${m.email}</td>
+<td>${m.points}</td>
 
-<b>${m.name}</b><br>
-
-${m.phone}
-<button onclick="copyText('${m.phone}')">Copy</button><br>
-
-${m.email}
-<button onclick="copyText('${m.email}')">Copy</button><br>
-
-Points: ${m.points}<br>
-
+<td>
 <button onclick="viewMember(${m.row})">View</button>
-<button onclick="editBasic(${m.row})">Edit</button>
+<button onclick="editMember(${m.row})">Edit</button>
+</td>
 
-</div>
+</tr>
 `;
 });
 
+html += "</table>";
+
+document.getElementById("members").innerHTML = html;
 }
 
 // =====================
-// SELECT TOGGLE
-// =====================
-function toggleSelect(phone){
+function toggle(phone){
 
 if(selected.has(phone)){
 selected.delete(phone);
@@ -184,39 +205,21 @@ selected.delete(phone);
 selected.add(phone);
 }
 
-renderMembers(membersData);
+renderTable(membersData);
 }
 
-// =====================
-// SELECT ALL
 // =====================
 function selectAll(){
-
 selected = new Set(membersData.map(m => m.phone));
-
-renderMembers(membersData);
+renderTable(membersData);
 }
 
-// =====================
-// CLEAR SELECT
 // =====================
 function clearSelect(){
-
 selected.clear();
-
-renderMembers(membersData);
+renderTable(membersData);
 }
 
-// =====================
-// COPY SINGLE
-// =====================
-function copyText(text){
-navigator.clipboard.writeText(text);
-alert("Copied");
-}
-
-// =====================
-// COPY SELECTED PHONES
 // =====================
 function copySelectedPhones(){
 
@@ -224,18 +227,10 @@ let arr = membersData
 .filter(m => selected.has(m.phone))
 .map(m => m.phone);
 
-if(arr.length === 0){
-alert("No selection");
-return;
-}
-
 navigator.clipboard.writeText(arr.join("\n"));
-
 alert("Copied phones: " + arr.length);
 }
 
-// =====================
-// COPY SELECTED EMAILS
 // =====================
 function copySelectedEmails(){
 
@@ -243,18 +238,10 @@ let arr = membersData
 .filter(m => selected.has(m.phone))
 .map(m => m.email);
 
-if(arr.length === 0){
-alert("No selection");
-return;
-}
-
 navigator.clipboard.writeText(arr.join("\n"));
-
 alert("Copied emails: " + arr.length);
 }
 
-// =====================
-// VIEW MEMBER
 // =====================
 async function viewMember(row){
 
@@ -263,25 +250,17 @@ let data = await res.json();
 
 let m = data.member;
 
-document.getElementById("detailBox").classList.remove("hidden");
+alert(
+"Name: " + m.name + "\n" +
+"Phone: " + m.phone + "\n" +
+"Email: " + m.email + "\n" +
+"Points: " + m.points
+);
 
-document.getElementById("detail").innerHTML = `
-Name: ${m.name}<br>
-Phone: ${m.phone}<br>
-Email: ${m.email}<br>
-Birthday: ${m.birthday}<br><br>
-
-Points: ${m.points}<br>
-Spin: ${m.spinStatus}<br>
-Birthday: ${m.birthdayStatus}<br>
-Promo: ${m.promoStatus}<br>
-`;
 }
 
 // =====================
-// EDIT MEMBER
-// =====================
-async function editBasic(row){
+async function editMember(row){
 
 let old = membersData.find(m => m.row === row);
 if(!old) return;
@@ -289,8 +268,6 @@ if(!old) return;
 let name = prompt("Name", old.name);
 let phone = prompt("Phone", old.phone);
 let email = prompt("Email", old.email);
-
-if(name === null || phone === null || email === null) return;
 
 await fetch(API()
 + "?mode=admin_update_member"
@@ -305,8 +282,6 @@ await loadMembers();
 alert("Updated");
 }
 
-// =====================
-// INIT
 // =====================
 loadMembers();
 
