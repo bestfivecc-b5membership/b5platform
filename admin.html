@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>B5 Admin Panel V4.6</title>
+<title>B5 Admin Panel V4.7</title>
 
 <style>
 
@@ -25,6 +25,14 @@ font-weight:bold;
 .container{
 padding:10px;
 overflow-x:auto;
+}
+
+.topBar{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-bottom:10px;
+align-items:center;
 }
 
 table{
@@ -66,16 +74,13 @@ font-size:12px;
 width:100%;
 }
 
-.topBar{
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-bottom:10px;
-}
-
-.editing input{
-border:1px solid #6b4e36;
-background:#fffaf5;
+.detailBox{
+background:#fff;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+display:none;
+border:1px solid #ddd;
 }
 
 </style>
@@ -83,40 +88,22 @@ background:#fffaf5;
 
 <body>
 
-<div class="header">📊 B5 Admin Panel V4.6</div>
+<div class="header">📊 B5 Admin Panel V4.7 FINAL</div>
 
 <div class="container">
 
 <div class="topBar">
 
-<input
-id="searchText"
-placeholder="Search Name / Phone / Email"
-style="
-max-width:250px;
-padding:6px;
-font-size:12px;
-">
+<input id="searchText" placeholder="Search name / phone / email">
 
-<button class="btn" onclick="searchMembers()">
-🔍 Search
-</button>
+<button class="btn" onclick="searchMembers()">🔍 Search</button>
+<button class="btn" onclick="loadMembers()">🔄 Refresh</button>
 
-<button class="btn" onclick="loadMembers()">
-🔄 Refresh
-</button>
+<button class="btn2" onclick="copyPhones()">📱 Phones</button>
+<button class="btn2" onclick="copyEmails()">📧 Emails</button>
+<button class="btn2" onclick="copyAll()">📋 Copy All</button>
 
-<button class="btn2" onclick="copySelectedPhones()">
-📱 Copy Selected Phones
-</button>
-
-<button class="btn2" onclick="copySelectedEmails()">
-📧 Copy Selected Emails
-</button>
-
-<button class="btn3" onclick="exportCSV()">
-⬇ Export
-</button>
+<button class="btn3" onclick="exportCSV()">⬇ Export</button>
 
 </div>
 
@@ -135,12 +122,15 @@ font-size:12px;
 <tbody id="tbody"></tbody>
 </table>
 
+<div id="detailBox" class="detailBox"></div>
+
 </div>
 
 <script>
 
-let members = [];
-let editMode = {};
+let allMembers = [];
+let filteredMembers = [];
+let editIndex = null;
 
 // =========================
 async function loadMembers(){
@@ -150,7 +140,9 @@ let res = await fetch(
 );
 
 let data = await res.json();
-members = data.members || [];
+
+allMembers = data.members || [];
+filteredMembers = [...allMembers];
 
 render();
 
@@ -161,45 +153,35 @@ function render(){
 
 let html = "";
 
-members.forEach((m,i)=>{
+filteredMembers.forEach((m,i)=>{
 
-let isEdit = editMode[i];
+let isEdit = (editIndex === i);
 
 html += `
 <tr>
-<td><input type="checkbox" class="chk" data-i="${i}"></td>
+<td><input type="checkbox" data-i="${i}"></td>
 
 <td>
-${isEdit
-? `<input value="${m.name}" onchange="m.name=this.value">`
-: m.name}
+${isEdit ? `<input value="${m.name}" oninput="m.name=this.value">` : m.name}
 </td>
 
 <td>
-${isEdit
-? `<input value="${m.phone}" onchange="m.phone=this.value">`
-: m.phone}
+${isEdit ? `<input value="${m.phone}" oninput="m.phone=this.value">` : m.phone}
 </td>
 
 <td>
-${isEdit
-? `<input value="${m.email}" onchange="m.email=this.value">`
-: m.email}
+${isEdit ? `<input value="${m.email}" oninput="m.email=this.value">` : m.email}
 </td>
 
 <td>
-${isEdit
-? `<input value="${m.points}" onchange="m.points=this.value">`
-: m.points}
+${isEdit ? `<input value="${m.points}" oninput="m.points=this.value">` : m.points}
 </td>
 
 <td>
-${isEdit
-? `
+${isEdit ? `
 <button class="btn2" onclick="save(${i})">Save</button>
-<button onclick="cancel(${i})">Cancel</button>
-`
-: `
+<button onclick="cancel()">Cancel</button>
+` : `
 <button class="btn" onclick="view(${m.row})">View</button>
 <button class="btn2" onclick="edit(${i})">Edit</button>
 `}
@@ -213,108 +195,55 @@ ${isEdit
 document.getElementById("tbody").innerHTML = html;
 
 }
+
+// =========================
 function searchMembers(){
 
-let keyword =
-document.getElementById("searchText")
-.value
-.toLowerCase()
-.trim();
+let k = document.getElementById("searchText").value.toLowerCase();
 
-if(!keyword){
+filteredMembers = allMembers.filter(m =>
 
-render();
-return;
-
-}
-
-let filtered =
-members.filter(m =>
-
-(m.name||"")
-.toLowerCase()
-.includes(keyword)
-
-||
-
-(m.phone||"")
-.toLowerCase()
-.includes(keyword)
-
-||
-
-(m.email||"")
-.toLowerCase()
-.includes(keyword)
+(m.name||"").toLowerCase().includes(k) ||
+(m.phone||"").toLowerCase().includes(k) ||
+(m.email||"").toLowerCase().includes(k)
 
 );
 
-renderFiltered(filtered);
-
-}
-function renderFiltered(list){
-
-let backup = members;
-
-members = list;
-
 render();
 
-members = backup;
-
 }
-  
+
 // =========================
 function edit(i){
-editMode[i] = true;
+editIndex = i;
+render();
+}
+
+// =========================
+function cancel(){
+editIndex = null;
 render();
 }
 
 // =========================
 async function save(i){
 
-let m = members[i];
+let m = filteredMembers[i];
 
 let url =
-`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_advanced`
-+ `&row=${m.row}`
-+ `&reward=${encodeURIComponent(m.reward||"")}`
-+ `&points=${encodeURIComponent(m.points||0)}`
-+ `&spinToken=${encodeURIComponent(m.spinToken||"")}`
-+ `&spinStatus=${encodeURIComponent(m.spinStatus||"")}`
-+ `&spinExpiry=${encodeURIComponent(m.spinExpiry||"")}`
-+ `&birthdayToken=${encodeURIComponent(m.birthdayToken||"")}`
-+ `&birthdayStatus=${encodeURIComponent(m.birthdayStatus||"")}`
-+ `&birthdayExpiry=${encodeURIComponent(m.birthdayExpiry||"")}`
-+ `&promoToken=${encodeURIComponent(m.promoToken||"")}`
-+ `&promoStatus=${encodeURIComponent(m.promoStatus||"")}`
-+ `&promoExpiry=${encodeURIComponent(m.promoExpiry||"")}`
-+ `&promoCampaign=${encodeURIComponent(m.promoCampaign||"')}`
-+ `&referral=${encodeURIComponent(m.referral||"")}`
-+ `&cycleStart=${encodeURIComponent(m.cycleStart||"")}`;
-
-await fetch(url);
-
-await fetch(
 `https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
 + `&row=${m.row}`
 + `&name=${encodeURIComponent(m.name)}`
 + `&phone=${encodeURIComponent(m.phone)}`
 + `&email=${encodeURIComponent(m.email)}`
-);
++ `&points=${encodeURIComponent(m.points)}`;
 
-editMode[i] = false;
+await fetch(url);
+
+editIndex = null;
 
 await loadMembers();
 
-alert("Updated");
-
-}
-
-// =========================
-function cancel(i){
-editMode[i] = false;
-render();
 }
 
 // =========================
@@ -324,17 +253,30 @@ let res = await fetch(
 `https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=${row}`
 );
 
-let data = await res.json();
+let d = await res.json();
 
-alert(
-`${data.member.name}\n${data.member.phone}\n${data.member.email}\nPoints: ${data.member.points}`
-);
+let m = d.member;
+
+document.getElementById("detailBox").style.display = "block";
+
+document.getElementById("detailBox").innerHTML = `
+<b>${m.name}</b><br>
+📞 ${m.phone}<br>
+📧 ${m.email}<br><br>
+
+Points: ${m.points}<br><br>
+
+Reward: ${m.reward}<br>
+Birthday: ${m.birthdayStatus}<br>
+Promo: ${m.promoStatus}<br>
+Referral: ${m.referral}<br>
+`;
 
 }
 
 // =========================
 function toggleAll(el){
-document.querySelectorAll(".chk").forEach(c=>{
+document.querySelectorAll("input[type=checkbox]").forEach(c=>{
 c.checked = el.checked;
 });
 }
@@ -343,26 +285,36 @@ c.checked = el.checked;
 function getSelected(){
 
 let list = [];
-document.querySelectorAll(".chk:checked").forEach(c=>{
-let i = c.dataset.i;
-list.push(members[i]);
+document.querySelectorAll("input[type=checkbox]:checked").forEach(c=>{
+let i = c.getAttribute("data-i");
+if(i !== null){
+list.push(filteredMembers[i]);
+}
 });
 return list;
 
 }
 
 // =========================
-function copySelectedPhones(){
-let list = getSelected().map(m=>m.phone).join("\n");
-navigator.clipboard.writeText(list);
-alert("Phones copied");
+function copyPhones(){
+navigator.clipboard.writeText(getSelected().map(m=>m.phone).join("\n"));
+alert("Copied phones");
 }
 
 // =========================
-function copySelectedEmails(){
-let list = getSelected().map(m=>m.email).join("\n");
-navigator.clipboard.writeText(list);
-alert("Emails copied");
+function copyEmails(){
+navigator.clipboard.writeText(getSelected().map(m=>m.email).join("\n"));
+alert("Copied emails");
+}
+
+// =========================
+function copyAll(){
+let text = getSelected().map(m =>
+`${m.name} | ${m.phone} | ${m.email} | ${m.points}`
+).join("\n");
+
+navigator.clipboard.writeText(text);
+alert("Copied all");
 }
 
 // =========================
@@ -370,11 +322,11 @@ function exportCSV(){
 
 let csv = "Name,Phone,Email,Points\n";
 
-members.forEach(m=>{
+filteredMembers.forEach(m=>{
 csv += `${m.name},${m.phone},${m.email},${m.points}\n`;
 });
 
-let blob = new Blob([csv], {type:"text/csv"});
+let blob = new Blob([csv],{type:"text/csv"});
 let url = URL.createObjectURL(blob);
 
 let a = document.createElement("a");
