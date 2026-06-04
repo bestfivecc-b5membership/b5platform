@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>B5 Admin Panel V5</title>
+<title>B5 Admin Panel V5 Stable</title>
 
 <style>
+
 body{
 margin:0;
 font-family:Arial;
@@ -26,6 +27,7 @@ padding:10px;
 overflow-x:auto;
 }
 
+/* TOP BAR */
 .topBar{
 display:flex;
 flex-wrap:wrap;
@@ -49,8 +51,8 @@ border:none;
 .btn{background:#6b4e36;color:white;}
 .btn2{background:#28a745;color:white;}
 .btn3{background:#ff9800;color:white;}
-.btn4{background:#1976d2;color:white;}
 
+/* TABLE */
 table{
 width:100%;
 border-collapse:collapse;
@@ -71,19 +73,12 @@ position:sticky;
 top:0;
 }
 
-.viewMode td{
-background:white;
-}
-
-.editMode td{
-background:#fffaf5;
-}
-
 .editInput{
 width:100%;
 padding:5px;
 font-size:12px;
 border:1px solid #ccc;
+border-radius:4px;
 }
 
 .smallBtn{
@@ -91,6 +86,7 @@ padding:4px 6px;
 font-size:11px;
 margin:2px;
 }
+
 </style>
 </head>
 
@@ -102,14 +98,14 @@ margin:2px;
 
 <div class="topBar">
 
-<input id="search" placeholder="Search name / phone / email">
+<input id="searchBox" placeholder="Search name / phone / email">
 
 <button class="btn" onclick="search()">Search</button>
 <button class="btn" onclick="load()">Refresh</button>
+<button class="btn2" onclick="toggleEdit()">Edit Mode</button>
 
-<button class="btn4" onclick="toggleEdit()">Edit Mode</button>
-
-<button class="btn2" onclick="copySelected()">Copy Selected</button>
+<button class="btn2" onclick="copySelectedPhones()">Copy Phones</button>
+<button class="btn2" onclick="copySelectedEmails()">Copy Emails</button>
 <button class="btn3" onclick="exportCSV()">Export</button>
 
 </div>
@@ -121,7 +117,6 @@ margin:2px;
 <th>Name</th>
 <th>Phone</th>
 <th>Email</th>
-<th>Points</th>
 <th>Action</th>
 </tr>
 </thead>
@@ -137,12 +132,16 @@ let members = [];
 let filtered = [];
 let editMode = false;
 
+const API =
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
+
 // =========================
 async function load(){
 
-let res = await fetch(
-"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_members"
-);
+document.getElementById("tbody").innerHTML =
+"<tr><td colspan='5'>Loading...</td></tr>";
+
+let res = await fetch(API + "?mode=admin_members");
 
 let data = await res.json();
 
@@ -156,47 +155,37 @@ render();
 // =========================
 function render(){
 
-let list = filtered;
-
 let html = "";
 
-list.forEach((m,i)=>{
+filtered.forEach((m,i)=>{
 
 html += `
-<tr class="${editMode?'editMode':'viewMode'}">
+<tr>
 
 <td><input type="checkbox" class="chk" data-i="${i}"></td>
 
 <td>
-${editMode ?
-`<input class="editInput" value="${m.name}" onchange="m.name=this.value">`
+${editMode
+? `<input class="editInput" value="${m.name}" onchange="m.name=this.value">`
 : m.name}
 </td>
 
 <td>
-${editMode ?
-`<input class="editInput" value="${m.phone}" onchange="m.phone=this.value">`
+${editMode
+? `<input class="editInput" value="${m.phone}" onchange="m.phone=this.value">`
 : m.phone}
 </td>
 
 <td>
-${editMode ?
-`<input class="editInput" value="${m.email}" onchange="m.email=this.value">`
+${editMode
+? `<input class="editInput" value="${m.email}" onchange="m.email=this.value">`
 : m.email}
 </td>
 
 <td>
-${editMode ?
-`<input class="editInput" value="${m.points}" onchange="m.points=this.value">`
-: m.points}
-</td>
-
-<td>
-${editMode ?
-`<button class="btn2 smallBtn" onclick="save(${i})">Save</button>`
-:
-`<button class="btn smallBtn" onclick="view(${m.row})">View</button>`
-}
+${editMode
+? `<button class="btn2 smallBtn" onclick="save(${i})">Save</button>`
+: `<span style="color:#888">View</span>`}
 </td>
 
 </tr>
@@ -220,12 +209,12 @@ async function save(i){
 let m = filtered[i];
 
 let url =
-`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
+API
++ "?mode=admin_update_member"
 + `&row=${m.row}`
 + `&name=${encodeURIComponent(m.name)}`
 + `&phone=${encodeURIComponent(m.phone)}`
-+ `&email=${encodeURIComponent(m.email)}`
-+ `&points=${encodeURIComponent(m.points)}`;
++ `&email=${encodeURIComponent(m.email)}`;
 
 await fetch(url);
 
@@ -238,7 +227,7 @@ load();
 // =========================
 function search(){
 
-let k = document.getElementById("search").value.toLowerCase();
+let k = document.getElementById("searchBox").value.toLowerCase();
 
 filtered = members.filter(m =>
 (m.name||"").toLowerCase().includes(k) ||
@@ -247,6 +236,7 @@ filtered = members.filter(m =>
 );
 
 render();
+
 }
 
 // =========================
@@ -259,29 +249,42 @@ c.checked = el.checked;
 }
 
 // =========================
-function copySelected(){
+function copySelectedPhones(){
 
 let list = [];
 
 document.querySelectorAll(".chk:checked").forEach(c=>{
 let i = c.dataset.i;
-list.push(filtered[i]);
+list.push(filtered[i].phone);
 });
 
-let text = list.map(m=>`${m.name} | ${m.phone} | ${m.email}`).join("\n");
+navigator.clipboard.writeText(list.join("\n"));
+alert("Phones copied");
 
-navigator.clipboard.writeText(text);
+}
 
-alert("Copied");
+// =========================
+function copySelectedEmails(){
+
+let list = [];
+
+document.querySelectorAll(".chk:checked").forEach(c=>{
+let i = c.dataset.i;
+list.push(filtered[i].email);
+});
+
+navigator.clipboard.writeText(list.join("\n"));
+alert("Emails copied");
+
 }
 
 // =========================
 function exportCSV(){
 
-let csv = "Name,Phone,Email,Points\n";
+let csv = "Name,Phone,Email\n";
 
 members.forEach(m=>{
-csv += `${m.name},${m.phone},${m.email},${m.points}\n`;
+csv += `${m.name},${m.phone},${m.email}\n`;
 });
 
 let blob = new Blob([csv], {type:"text/csv"});
@@ -291,6 +294,7 @@ let a = document.createElement("a");
 a.href = url;
 a.download = "members.csv";
 a.click();
+
 }
 
 load();
