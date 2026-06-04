@@ -224,9 +224,14 @@ await fetch(
 + "&email=" + encodeURIComponent(email)
 );
 
+// 🔥 important: wait backend flush
+await new Promise(r => setTimeout(r, 500));
+
 alert("Updated");
 
-loadMembers();
+// 🔥 force fresh reload (NOT reuse old memory)
+membersData = [];
+await loadMembers();
 
 }
 
