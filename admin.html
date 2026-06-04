@@ -90,6 +90,10 @@ border-radius:6px;
 <button onclick="loadMembers()">Search</button>
 <button onclick="copyAllPhones()">📱 Copy Phones</button>
 <button onclick="copyAllEmails()">📧 Copy Emails</button>
+<button onclick="selectAll()">Select All</button>
+<button onclick="clearSelect()">Clear</button>
+<button onclick="copySelectedPhones()">Copy Selected Phones</button>
+<button onclick="copySelectedEmails()">Copy Selected Emails</button>  
 </div>
 
 <div class="box">
@@ -123,6 +127,9 @@ document.getElementById("stats").innerHTML =
 // =====================
 async function loadMembers(){
 
+// 🔥 如果已有数据且没强制 refresh，就不重新 fetch
+if(membersData.length > 0) return;
+
 let res = await fetch(API()+"?mode=admin_members");
 let data = await res.json();
 
@@ -131,6 +138,13 @@ membersData = data.members || [];
 renderMembers(membersData);
 }
 
+async function refreshMembers(){
+
+membersData = [];
+
+await loadMembers();
+}
+  
 // =====================
 // RENDER MEMBERS (FIXED)
 // =====================
@@ -151,6 +165,9 @@ return;
 
 container.innerHTML += `
 <div class="member">
+
+<input type="checkbox" onchange="toggleSelect('${m.phone}')">
+
 <b>${m.name}</b><br>
 ${m.phone}
 <button class="copy-btn" onclick="copyText('${m.phone}')">Copy</button><br>
@@ -162,12 +179,56 @@ Points: <b>${m.points}</b><br>
 
 <button onclick="viewMember(${m.row})">View</button>
 <button onclick="editBasic(${m.row})">Edit</button>
+
 </div>
 `;
 });
 
 }
 
+function toggleSelect(phone){
+
+if(selected.has(phone)){
+selected.delete(phone);
+} else {
+selected.add(phone);
+}
+}
+
+function copySelectedPhones(){
+
+let arr = membersData
+.filter(m => selected.has(m.phone))
+.map(m => m.phone);
+
+navigator.clipboard.writeText(arr.join("\n"));
+
+alert("Copied selected phones: " + arr.length);
+}
+
+function copySelectedEmails(){
+
+let arr = membersData
+.filter(m => selected.has(m.phone))
+.map(m => m.email);
+
+navigator.clipboard.writeText(arr.join("\n"));
+
+alert("Copied selected emails: " + arr.length);
+}
+
+function selectAll(){
+
+membersData.forEach(m => selected.add(m.phone));
+
+renderMembers(membersData);
+}
+
+function clearSelect(){
+selected.clear();
+renderMembers(membersData);
+}
+  
 // =====================
 // VIEW MEMBER (FIXED)
 // =====================
