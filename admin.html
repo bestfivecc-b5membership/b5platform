@@ -2,105 +2,84 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>B5 Admin V4 FINAL</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>B5 Admin Panel V4.5</title>
 
 <style>
 
 body{
-font-family:Arial;
-background:#f7f1e8;
 margin:0;
-padding:12px;
-color:#5e4630;
+font-family:Arial;
+background:#f6f1e8;
+color:#4b3b2a;
 }
 
 .header{
-font-size:18px;
-font-weight:bold;
-margin-bottom:10px;
-}
-
-.box{
-background:white;
-padding:10px;
-border-radius:10px;
-margin-bottom:10px;
-box-shadow:0 2px 8px rgba(0,0,0,0.05);
-}
-
-input{
-width:100%;
-padding:10px;
-border-radius:8px;
-border:1px solid #ddd;
-box-sizing:border-box;
-}
-
-.toolbar{
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-top:8px;
-}
-
-button{
-padding:7px 9px;
-border:none;
-border-radius:6px;
-cursor:pointer;
 background:#6b4e36;
-color:white;
-font-size:12px;
+color:#fff;
+padding:14px;
+text-align:center;
+font-weight:bold;
 }
 
-.table{
+.container{
+padding:10px;
+max-width:100%;
+overflow-x:auto;
+}
+
+/* TABLE WRAPPER */
+.tableWrap{
+overflow-x:auto;
+background:white;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* TABLE */
+table{
 width:100%;
 border-collapse:collapse;
-table-layout:fixed;
-font-size:12px;
+min-width:900px;
 }
 
-.table th, .table td{
+th,td{
+padding:10px;
 border-bottom:1px solid #eee;
-padding:6px;
+font-size:13px;
+text-align:left;
 white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
 }
 
-.table th{
+th{
 background:#f3ede6;
 position:sticky;
 top:0;
-z-index:5;
+z-index:2;
 }
 
-.row-hover:hover{
-background:#fff8ef;
+button{
+padding:6px 10px;
+font-size:12px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+margin:2px;
 }
 
-.modal{
-position:fixed;
-top:0;left:0;
-width:100%;height:100%;
-background:rgba(0,0,0,0.4);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:999;
+.btn{
+background:#6b4e36;
+color:white;
 }
 
-.modal-box{
-background:white;
-padding:15px;
-width:90%;
-max-width:420px;
-border-radius:12px;
+.btn2{
+background:#28a745;
+color:white;
 }
 
-.modal input{
-margin-bottom:8px;
+.btn3{
+background:#ff9800;
+color:white;
 }
 
 .small{
@@ -108,245 +87,209 @@ font-size:12px;
 color:#777;
 }
 
+input{
+padding:6px;
+font-size:12px;
+width:100%;
+box-sizing:border-box;
+}
+
+.topBar{
+display:flex;
+flex-wrap:wrap;
+gap:6px;
+margin-bottom:10px;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="header">📊 B5 Admin V4 FINAL</div>
+<div class="header">📊 B5 Admin Panel V4.5</div>
 
-<div class="box">
+<div class="container">
 
-<input id="searchInput" placeholder="Search name / phone / email">
-
-<div class="toolbar">
-
-<button onclick="selectAll()">☑ All</button>
-<button onclick="clearSelect()">✖ Clear</button>
-
-<button onclick="copyPhones()">📱 Phones</button>
-<button onclick="copyEmails()">📧 Emails</button>
-<button onclick="copyFull()">📋 Full</button>
-<button onclick="exportCSV()">⬇ Export</button>
-
+<div class="topBar">
+<button class="btn" onclick="loadMembers()">🔄 Refresh</button>
+<button class="btn2" onclick="copyAllPhones()">📱 Copy All Phones</button>
+<button class="btn2" onclick="copyAllEmails()">📧 Copy All Emails</button>
+<button class="btn3" onclick="exportCSV()">⬇ Export</button>
 </div>
 
-</div>
-
-<div class="box">
-<div id="table">Loading...</div>
-</div>
-
-<!-- ================= MODAL ================= -->
-<div class="modal" id="modal">
-
-<div class="modal-box">
-
-<h3>Member Detail</h3>
-
-<input id="m_name" placeholder="Name">
-<input id="m_phone" placeholder="Phone">
-<input id="m_email" placeholder="Email">
-<input id="m_points" placeholder="Points">
-
-<div class="toolbar">
-
-<button onclick="saveEdit()">💾 Save</button>
-<button onclick="closeModal()">Close</button>
-
-</div>
-
+<div class="tableWrap">
+<table id="table">
+<thead>
+<tr>
+<th><input type="checkbox" onclick="toggleAll(this)"></th>
+<th>Name</th>
+<th>Phone</th>
+<th>Email</th>
+<th>Points</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
 </div>
 
 </div>
 
 <script>
 
-let data = [];
-let selected = new Set();
-let currentEditPhone = null;
+let members = [];
 
-const API = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
+// =========================
+// LOAD MEMBERS
+// =========================
+async function loadMembers(){
 
-// ================= LOAD =================
-async function load(){
+document.getElementById("tbody").innerHTML =
+"<tr><td colspan='6'>Loading...</td></tr>";
 
-let res = await fetch(API+"?mode=admin_members");
-let json = await res.json();
+let res = await fetch(
+"https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_members"
+);
 
-data = json.members || [];
+let data = await res.json();
+
+members = data.members || [];
 
 render();
+
 }
 
-// ================= RENDER =================
+// =========================
+// RENDER TABLE
+// =========================
 function render(){
 
-let k = document.getElementById("searchInput").value.toLowerCase();
+let html = "";
 
-let html = `
-<table class="table">
-<tr>
-<th></th>
-<th>Name</th>
-<th>Phone</th>
-<th>Email</th>
-<th>Pts</th>
-<th>Action</th>
-</tr>
-`;
-
-data.forEach(m=>{
-
-if(k &&
-!(m.name.toLowerCase().includes(k) ||
-m.phone.includes(k) ||
-m.email.toLowerCase().includes(k)))
-return;
+members.forEach((m,i)=>{
 
 html += `
-<tr class="row-hover">
+<tr>
+<td><input type="checkbox" class="chk" data-i="${i}"></td>
 
 <td>
-<input type="checkbox"
-${selected.has(m.phone)?"checked":""}
-onchange="toggle('${m.phone}')">
+<input value="${m.name}" onchange="edit(${i},'name',this.value)">
 </td>
 
-<td>${m.name}</td>
-<td>${m.phone}</td>
-<td>${m.email}</td>
+<td>
+<input value="${m.phone}" onchange="edit(${i},'phone',this.value)">
+</td>
+
+<td>
+<input value="${m.email}" onchange="edit(${i},'email',this.value)">
+</td>
+
 <td>${m.points}</td>
 
 <td>
-<button onclick="view('${m.phone}')">View</button>
-<button onclick="edit('${m.phone}')">Edit</button>
+<button class="btn" onclick="view(${m.row})">View</button>
 </td>
 
 </tr>
 `;
+
 });
 
-html += "</table>";
+document.getElementById("tbody").innerHTML = html;
 
-document.getElementById("table").innerHTML = html;
 }
 
-// ================= VIEW =================
-function view(phone){
+// =========================
+// EDIT MEMBER (AUTO SAVE)
+// =========================
+async function edit(i,field,value){
 
-let m = data.find(x=>x.phone===phone);
+let m = members[i];
+
+let url =
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_update_member`
++ `&row=${m.row}`
++ `&name=${field==='name'?value:m.name}`
++ `&phone=${field==='phone'?value:m.phone}`
++ `&email=${field==='email'?value:m.email}`;
+
+await fetch(url);
+
+// update local (NO refresh needed)
+m[field] = value;
+
+}
+
+// =========================
+// VIEW
+// =========================
+async function view(row){
+
+let res = await fetch(
+`https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=admin_member_detail&row=${row}`
+);
+
+let data = await res.json();
 
 alert(
-"Name: "+m.name+"\n"+
-"Phone: "+m.phone+"\n"+
-"Email: "+m.email+"\n"+
-"Points: "+m.points
+`Name: ${data.member.name}\nPhone: ${data.member.phone}\nEmail: ${data.member.email}\nPoints: ${data.member.points}`
 );
+
 }
 
-// ================= EDIT =================
-function edit(phone){
+// =========================
+// SELECT ALL
+// =========================
+function toggleAll(el){
 
-let m = data.find(x=>x.phone===phone);
-
-currentEditPhone = phone;
-
-document.getElementById("m_name").value = m.name;
-document.getElementById("m_phone").value = m.phone;
-document.getElementById("m_email").value = m.email;
-document.getElementById("m_points").value = m.points;
-
-document.getElementById("modal").style.display="flex";
-}
-
-function closeModal(){
-document.getElementById("modal").style.display="none";
-}
-
-// ================= SAVE =================
-async function saveEdit(){
-
-let payload = {
-mode:"admin_update",
-phone:currentEditPhone,
-name:document.getElementById("m_name").value,
-newPhone:document.getElementById("m_phone").value,
-email:document.getElementById("m_email").value,
-points:document.getElementById("m_points").value
-};
-
-await fetch(API,{
-method:"POST",
-headers:{"Content-Type":"application/x-www-form-urlencoded"},
-body:new URLSearchParams(payload)
+document.querySelectorAll(".chk").forEach(c=>{
+c.checked = el.checked;
 });
 
-// update local
-let m = data.find(x=>x.phone===currentEditPhone);
-
-m.name = payload.name;
-m.phone = payload.newPhone;
-m.email = payload.email;
-m.points = payload.points;
-
-closeModal();
-render();
 }
 
-// ================= TOGGLE =================
-function toggle(phone){
-if(selected.has(phone)) selected.delete(phone);
-else selected.add(phone);
+// =========================
+// COPY PHONE
+// =========================
+function copyAllPhones(){
+
+let list = members.map(m=>m.phone).join("\n");
+navigator.clipboard.writeText(list);
+alert("Phones copied");
 }
 
-// ================= COPY =================
-function copyPhones(){
-let arr = data.filter(m=>selected.has(m.phone)).map(m=>m.phone);
-navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied "+arr.length);
+// =========================
+// COPY EMAIL
+// =========================
+function copyAllEmails(){
+
+let list = members.map(m=>m.email).join("\n");
+navigator.clipboard.writeText(list);
+alert("Emails copied");
 }
 
-function copyEmails(){
-let arr = data.filter(m=>selected.has(m.phone)).map(m=>m.email);
-navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied "+arr.length);
-}
-
-function copyFull(){
-let arr = data.filter(m=>selected.has(m.phone))
-.map(m=>`${m.name} | ${m.phone} | ${m.email} | ${m.points}`);
-
-navigator.clipboard.writeText(arr.join("\n"));
-alert("Copied "+arr.length);
-}
-
-// ================= EXPORT =================
+// =========================
+// EXPORT CSV
+// =========================
 function exportCSV(){
 
-let rows = [["Name","Phone","Email","Points"]];
+let csv = "Name,Phone,Email,Points\n";
 
-data.forEach(m=>{
-rows.push([m.name,m.phone,m.email,m.points]);
+members.forEach(m=>{
+csv += `${m.name},${m.phone},${m.email},${m.points}\n`;
 });
 
-let csv = rows.map(r=>r.join(",")).join("\n");
-
-let blob = new Blob([csv],{type:"text/csv"});
+let blob = new Blob([csv], {type:"text/csv"});
 let url = URL.createObjectURL(blob);
 
-let a=document.createElement("a");
-a.href=url;
-a.download="members.csv";
+let a = document.createElement("a");
+a.href = url;
+a.download = "members.csv";
 a.click();
+
 }
 
-// ================= SEARCH LIVE =================
-document.getElementById("searchInput")
-.addEventListener("input",render);
-
-// ================= INIT =================
-load();
+loadMembers();
 
 </script>
 
