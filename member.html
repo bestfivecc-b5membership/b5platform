@@ -218,10 +218,26 @@ catalog.sort((a,b)=>a.points-b.points).forEach(item=>{
 const can = points >= item.points;
 
 html+=`
-<div class="row">
+<div class="row" style="align-items:center;">
+
+<div style="display:flex;gap:10px;align-items:center;">
+
+${item.image ? `
+<img src="${item.image}"
+style="
+width:40px;
+height:40px;
+border-radius:8px;
+object-fit:cover;
+border:1px solid #eee;
+">
+` : ""}
+
 <div>
 <b>${item.reward}</b><br>
 <span class="small">${item.points} pts</span>
+</div>
+
 </div>
 
 <div>
@@ -239,7 +255,6 @@ Redeem
 html+="</div>";
 return html;
 }
-
 // =====================
 // HISTORY
 // =====================
