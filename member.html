@@ -139,14 +139,15 @@ alert("Copied");
 // REDEEM
 // =====================
 
-async function redeem(phone, reward, points){
+async function redeem(phone, reward, points, staff){
 
 const url =
 "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec"
 + "?mode=redeem"
 + "&phone=" + encodeURIComponent(phone)
 + "&reward=" + encodeURIComponent(reward)
-+ "&points=" + encodeURIComponent(points);
++ "&points=" + encodeURIComponent(points)
++ "&staff=" + encodeURIComponent(staff);
 
 let res=await fetch(url);
 let data=await res.json();
@@ -183,7 +184,7 @@ html+=`
 <div>
 <button class="redeem-btn"
 ${can ? "" : "disabled"}
-onclick="redeem('${phone}','${item.reward}',${item.points})">
+onclick="confirmRedeem('${phone}','${item.reward}',${item.points})"
 Redeem
 </button>
 </div>
@@ -195,6 +196,25 @@ Redeem
 html+="</div>";
 return html;
 }
+
+async function confirmRedeem(phone, reward, points){
+
+let staff = prompt("Staff Name:");
+
+if(!staff || staff.trim().length < 2){
+alert("Invalid staff name");
+return;
+}
+
+let ok = confirm(
+`Confirm Redeem?\n\nReward: ${reward}\nPoints: ${points}\nStaff: ${staff}`
+);
+
+if(!ok) return;
+
+await redeem(phone, reward, points, staff.trim());
+
+}  
 // =====================
 // REDEEM HISTORY
 // =====================
