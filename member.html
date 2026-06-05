@@ -22,9 +22,7 @@ margin-bottom:14px;
 box-shadow:0 8px 18px rgba(0,0,0,0.08);
 }
 
-*{
-box-sizing:border-box;
-}
+*{box-sizing:border-box;}
 
 input, button{
 width:100%;
@@ -45,11 +43,29 @@ border-color:#6b4e36;
 box-shadow:0 0 0 2px rgba(107,78,54,0.15);
 }
 
+/* MAIN BUTTON */
 button{
 border:none;
 background:#6b4e36;
 color:white;
 cursor:pointer;
+}
+
+/* REDEEM BUTTON (RESTORED BIG STYLE) */
+.redeem-btn{
+background:#6b4e36;
+color:white;
+border:none;
+padding:10px 14px;
+border-radius:10px;
+cursor:pointer;
+font-size:13px;
+min-width:90px;
+}
+
+.redeem-btn:disabled{
+background:#ccc;
+cursor:not-allowed;
 }
 
 .row{
@@ -64,41 +80,16 @@ font-size:12px;
 color:#888;
 }
 
-.redeem-btn{
-background:#2e7d32;
-color:white;
-border:none;
-padding:6px 10px;
-border-radius:8px;
-cursor:pointer;
-font-size:12px;
-}
-
-.redeem-btn:disabled{
-background:#ccc;
-cursor:not-allowed;
-}
-
-.click{
-cursor:pointer;
-font-weight:bold;
-}
-
-.hidden{
-display:none;
-}
-
-.loading{
-text-align:center;
-padding:20px;
-font-weight:bold;
-}
+.click{cursor:pointer;font-weight:bold;}
+.hidden{display:none;}
+.loading{text-align:center;padding:20px;font-weight:bold;}
 
 .copy-btn{
 margin-top:6px;
 padding:6px;
 font-size:12px;
 background:#444;
+border-radius:6px;
 }
 
 </style>
@@ -126,19 +117,14 @@ if(!el) return;
 el.classList.toggle("hidden");
 }
 
-// =====================
-// COPY
-// =====================
-
 function copyText(text){
 navigator.clipboard.writeText(text);
 alert("Copied");
 }
 
 // =====================
-// REDEEM
+// REDEEM API
 // =====================
-
 async function redeem(phone, reward, points, staff){
 
 const url =
@@ -161,9 +147,29 @@ search();
 }
 
 // =====================
+// CONFIRM REDEEM
+// =====================
+async function confirmRedeem(phone, reward, points){
+
+let staff = prompt("Staff Name:");
+
+if(!staff || staff.trim().length < 2){
+alert("Invalid staff name");
+return;
+}
+
+let ok = confirm(
+`Confirm Redeem?\n\nReward: ${reward}\nPoints: ${points}\nStaff: ${staff}`
+);
+
+if(!ok) return;
+
+await redeem(phone, reward, points, staff.trim());
+}
+
+// =====================
 // CATALOG
 // =====================
-
 function renderCatalog(catalog, points, phone){
 
 if(!catalog) return "";
@@ -184,7 +190,7 @@ html+=`
 <div>
 <button class="redeem-btn"
 ${can ? "" : "disabled"}
-onclick="confirmRedeem('${phone}','${item.reward}',${item.points})"
+onclick="confirmRedeem('${phone}','${item.reward}',${item.points})">
 Redeem
 </button>
 </div>
@@ -197,32 +203,12 @@ html+="</div>";
 return html;
 }
 
-async function confirmRedeem(phone, reward, points){
-
-let staff = prompt("Staff Name:");
-
-if(!staff || staff.trim().length < 2){
-alert("Invalid staff name");
-return;
-}
-
-let ok = confirm(
-`Confirm Redeem?\n\nReward: ${reward}\nPoints: ${points}\nStaff: ${staff}`
-);
-
-if(!ok) return;
-
-await redeem(phone, reward, points, staff.trim());
-
-}  
 // =====================
-// REDEEM HISTORY
+// HISTORY
 // =====================
-
 function renderHistory(history){
 
 if(!history || history.length===0){
-
 return `
 <div class="box">
 <h3>📜 Redeem History</h3>
@@ -231,44 +217,27 @@ No redemption yet
 `;
 }
 
-let html=`
-<div class="box">
-<h3>📜 Redeem History</h3>
-`;
+let html=`<div class="box"><h3>📜 Redeem History</h3>`;
 
 history.forEach(item=>{
-
 html+=`
 <div class="row">
-
 <div>
-
 <b>${item.reward}</b><br>
-
-<span class="small">
-${item.date}
-</span>
-
+<span class="small">${item.date}</span>
 </div>
-
-<div>
-
--${item.points} pts
-
-</div>
-
+<div>-${item.points} pts</div>
 </div>
 `;
 });
 
 html+="</div>";
-
 return html;
 }
+
 // =====================
 // SEARCH
 // =====================
-
 async function search(){
 
 let phone=document.getElementById("phone").value.trim();
@@ -300,12 +269,6 @@ document.getElementById("searchBox").style.display="none";
 
 let m=data.data;
 
-function tokenBlock(label, token){
-if(!token) return "-";
-return token + 
-`<button class="copy-btn" onclick="copyText('${token}')">Copy</button>`;
-}
-
 document.getElementById("result").innerHTML=`
 
 <div class="box">
@@ -313,149 +276,56 @@ document.getElementById("result").innerHTML=`
 </div>
 
 <div class="box">
-
 <h2>${m.profile.name}</h2>
-
 ${m.profile.phone}<br>
 ${m.profile.email}
-
 </div>
 
 <div class="box">
-
 <h3>💰 Current Points</h3>
-
 <div style="font-size:34px;font-weight:bold;">
 ${m.points.balance}
 </div>
-
 Cycle Start: ${safeDateDisplay(m.points.cycleStart)}<br>
 Expiry: ${safeDateDisplay(m.points.expiry)}
-
 </div>
 
 `;
 
 document.getElementById("result").innerHTML +=
-renderCatalog(
-m.catalog,
-m.points.balance,
-m.profile.phone
-);
+renderCatalog(m.catalog, m.points.balance, m.profile.phone);
+
 document.getElementById("result").innerHTML +=
-renderHistory(
-m.history
-);
-// =====================
-// REWARD BLOCKS
-// =====================
-
-document.getElementById("result").innerHTML += `
-
-<div class="box">
-
-<div class="click" onclick="toggle('spinReward')">
-🎁 Spin Reward ▶
-</div>
-
-<div id="spinReward" class="hidden">
-
-Reward: ${m.reward.name || "-"}<br>
-Token: ${tokenBlock("spin", m.reward.token)}<br>
-Status: ${m.reward.status || "-"}<br>
-Expiry: ${m.reward.expiry || "-"}
-
-</div>
-
-</div>
-
-<div class="box">
-
-<div class="click" onclick="toggle('birthdayReward')">
-🎂 Birthday Reward ▶
-</div>
-
-<div id="birthdayReward" class="hidden">
-
-Token: ${tokenBlock("birthday", m.birthdayReward.token)}<br>
-Status: ${m.birthdayReward.status || "-"}<br>
-Expiry: ${m.birthdayReward.expiry || "-"}
-
-</div>
-
-</div>
-
-<div class="box">
-
-<div class="click" onclick="toggle('promoReward')">
-🔥 Promo Reward ▶
-</div>
-
-<div id="promoReward" class="hidden">
-
-Campaign: ${m.promoReward.campaign || "-"}<br>
-Token: ${tokenBlock("promo", m.promoReward.token)}<br>
-Status: ${m.promoReward.status || "-"}<br>
-Expiry: ${m.promoReward.expiry || "-"}
-
-</div>
-
-</div>
-
-<div class="box">
-
-<div class="click" onclick="toggle('referral')">
-👥 Referral ▶
-</div>
-
-<div id="referral" class="hidden">
-
-Referred By: ${m.referral.referredBy || "-"}
-
-</div>
-
-</div>
-
-`;
+renderHistory(m.history);
 
 }
+
+// =====================
+// PHONE FORMAT
+// =====================
 function normalizePhone(input){
 let phone = input.value.trim();
-
-// remove spaces / symbols
 phone = phone.replace(/[^0-9]/g,'');
-
-// 012xxxxxxx → 6012xxxxxxx
-if(phone.startsWith("0")){
-phone = "6" + phone;
-}
-
-// ensure 60 prefix
-if(!phone.startsWith("60")){
-phone = "60" + phone;
-}
-
+if(phone.startsWith("0")) phone = "6" + phone;
+if(!phone.startsWith("60")) phone = "60" + phone;
 input.value = phone;
 }
-  function safeDateDisplay(dateStr){
 
+// =====================
+// DATE SAFE
+// =====================
+function safeDateDisplay(dateStr){
 if(!dateStr) return "-";
+if(typeof dateStr === "string" && dateStr.includes("/")) return dateStr;
 
-// already formatted dd/mm/yyyy
-if(typeof dateStr === "string" && dateStr.includes("/")){
-return dateStr;
-}
-
-// convert safely without timezone shift
 let d = new Date(dateStr);
-
-// IMPORTANT: force local date only (no time)
 let day = String(d.getDate()).padStart(2,'0');
 let month = String(d.getMonth()+1).padStart(2,'0');
 let year = d.getFullYear();
 
 return `${day}/${month}/${year}`;
 }
+
 </script>
 
 </body>
