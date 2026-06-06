@@ -700,13 +700,25 @@ body{
       Please check your email inbox for your reward details,
       promotions and future member benefits.
 
+      <br><br>
+
+      <strong>Stay connected and receive:</strong>
+
+      <br><br>
+
+      ✅ Exclusive Promotions<br>
+      ✅ Birthday Rewards<br>
+      ✅ Member Specials<br>
+      ✅ Limited-Time Deals<br>
+      ✅ New Reward Announcements
+
     </p>
 
     <button
       class="primary-button"
-      onclick="closeSuccessModal()"
+      onclick="joinWhatsAppChannel()"
     >
-      Done
+      📲 Click to Join B5 VIP Deals & Get Future Member Rewards
     </button>
 
   </div>
@@ -1446,12 +1458,18 @@ submitButton.innerText = "Claim My Reward";
    SUCCESS MODAL
 ========================= */
 
-function closeSuccessModal(){
+function joinWhatsAppChannel(){
 
-location.reload();
+  window.open(
+    "https://whatsapp.com/channel/0029VbCyzvnIyPtSkGJl6B0K",
+    "_blank"
+  );
+
+  setTimeout(() => {
+    location.reload();
+  }, 500);
 
 }
-
 </script>
 
 </body>
