@@ -1,13 +1,16 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>B5 Admin Portal</title>
+    <title>B5 Member & Admin Portal</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -30,23 +33,116 @@
             animation: custom-bounce 1.2s infinite ease-in-out;
             display: inline-block;
         }
+
+        /* 🔒 Security Gate Interface */
+        #b5SecurityGate {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FAF6F0;
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .security-card {
+            max-width: 400px;
+            width: 90%;
+            padding: 35px 25px;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -10px rgba(99, 58, 17, 0.1);
+            text-align: center;
+            box-sizing: border-box;
+            border: 1px solid #F2E4D4;
+        }
+        .input-control {
+            width: 100%;
+            background-color: #FAF6F0;
+            border: 1px solid #EADCC9;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            font-size: 14px;
+            color: #4A3419;
+            transition: all 0.2s;
+        }
+        .input-control:focus {
+            outline: none;
+            border-color: #633A11;
+            background-color: #ffffff;
+        }
+        .btn-block {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+        .btn-main { background: #633A11; color: white; margin-top: 6px; margin-bottom: 12px; }
+        .btn-main:hover { background: #4A2B0C; }
+        .status-msg { font-size: 12px; margin-top: 12px; font-weight: 600; text-align: center; }
     </style>
 </head>
 <body class="pb-24">
 
-    <!-- 原汁原味保留的成功横幅提示 -->
-    <div id="receiptNotice" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] w-11/12 max-w-sm bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
+    <!-- 成功横幅提示 -->
+    <div id="receiptNotice" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100000] w-11/12 max-w-sm bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
         <div class="flex items-center gap-3">
             <div class="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-sm">✅</div>
             <div class="flex-1">
-                <h4 class="font-extrabold text-sm tracking-wide">Redeem Successful!</h4>
+                <h4 id="receiptTitle" class="font-extrabold text-sm tracking-wide">Redeem Successful!</h4>
                 <p id="receiptDetails" class="text-[11px] text-emerald-100 mt-0.5">Item processed securely.</p>
             </div>
-            <button onclick="closeReceipt()" class="text-white/60 hover:text-white text-xs font-bold px-2">Dismiss</button>
+            <button onclick="closeReceipt()" class="text-white/60 hover:text-white text-xs font-bold px-2 cursor-pointer">Dismiss</button>
         </div>
     </div>
 
-    <!-- 详情说明弹窗（大宽屏复用） -->
+    <!-- =========================================================================
+       🔒 Login Gate (支持输入 Phone/Email + 可选 Spend Amount 快捷加积分)
+       ========================================================================= -->
+    <div id="b5SecurityGate">
+        <div id="b5LoginPanel" class="security-card">
+            <h2 class="text-xl font-extrabold text-[#633A11] mb-1">🎁 B5 Cuisine Cafe</h2>
+            <p class="text-xs text-[#8C745A] font-medium mb-6">Member & Admin Quick Portal Access</p>
+            
+            <form onsubmit="event.preventDefault(); handleDirectLogin();" novalidate>
+                <!-- 1. 电话号码 -->
+                <input type="text" id="loginPhone" onblur="normalizePhone(this)" class="input-control" placeholder="Phone Number (e.g. 0123456789)" />
+                
+                <!-- 2. Email（可选） -->
+                <input type="email" id="loginEmail" class="input-control" placeholder="Email Address (Optional)" />
+
+                <!-- 3. 💳 消费金额加积分（可选，快捷功能） -->
+                <div class="relative">
+                    <input type="number" id="loginAmount" step="0.01" oninput="updateAmountPreview(this.value)" class="input-control !mb-1 text-emerald-800 font-bold placeholder:font-normal placeholder:text-gray-400" placeholder="Amount Spent RM (Optional to Add Points)" />
+                    <p id="amountPreview" class="text-[11px] text-emerald-600 font-extrabold text-left px-1 mb-3 hidden">
+                        ✨ Will add +<span id="previewPts">0</span> Points upon login
+                    </p>
+                </div>
+
+                <button type="submit" class="btn-block btn-main shadow-sm cursor-pointer flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Log In / Process
+                </button>
+            </form>
+            
+            <p id="loginMessage" class="status-msg" style="display: none;"></p>
+        </div>
+    </div>
+
+
+    <!-- =========================================================================
+       📦 Layer 2: Main Dashboard View
+       ========================================================================= -->
+
+    <!-- Rules Modal Container -->
     <div id="detailsModal" class="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl transform scale-95 transition-all duration-300" id="modalContainer">
             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -57,195 +153,131 @@
         </div>
     </div>
 
-    <!-- 顶部导航条：采用大宽屏样式，双击切换 STAFF 状态 -->
+    <!-- Top Sticky Header -->
     <header id="topBar" ondblclick="triggerAdminToggle()" class="bg-[#633A11] text-white px-5 py-4 sticky top-0 z-50 shadow-md flex justify-between items-center w-full select-none cursor-pointer transition-colors duration-300">
-        <div class="w-16 text-xs font-bold text-amber-400" id="adminIndicator"></div>
-        <h1 class="text-base font-extrabold flex items-center gap-2 tracking-wide text-center">🎁 B5 Admin Portal</h1>
-        <div class="w-16 flex justify-end items-center">
+        <div class="w-20 text-xs font-bold text-amber-400" id="adminIndicator"></div>
+        <h1 class="text-base font-bold flex items-center gap-2 tracking-wide">🎁 B5 Member Portal</h1>
+        <div class="w-20 flex justify-end items-center gap-2">
             <div id="syncIndicator" class="opacity-0 transition-opacity duration-300 text-emerald-400 text-xs"><i class="fa-solid fa-rotate animate-spin"></i></div>
         </div>
     </header>
 
-    <!-- 主容器：支持 md 和 lg 的宽屏响应式布局网格 -->
+    <!-- Main Container -->
     <div class="max-w-md md:max-w-6xl mx-auto px-4 mt-6">
-
-        <!-- 搜素框 -->
-        <div class="bg-white rounded-3xl p-6 border border-[#F2E4D4] premium-shadow max-w-md mx-auto" id="searchBox">
-            <h3 id="searchTitle" class="text-base font-extrabold text-[#633A11] mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-magnifying-glass"></i> Member Lookup
-            </h3>
-            <div class="flex flex-col gap-3">
-                <input id="phone" type="text" placeholder="Phone Number" onblur="normalizePhone(this)" class="w-full bg-[#FAF6F0] border border-[#EADCC9] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#633A11] transition">
-                <input id="email" type="email" placeholder="Email" class="w-full bg-[#FAF6F0] border border-[#EADCC9] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#633A11] transition">
-                <button onclick="startManualSearch()" class="w-full bg-[#633A11] hover:bg-[#4A2B0C] text-white font-bold py-3 rounded-xl transition mt-2 shadow-md cursor-pointer">
-                    Search Profile
-                </button>
-            </div>
-        </div>
-
-        <!-- 会员详情数据展示网格（渲染时应用多列排版） -->
+        <!-- Dashboard Output View -->
         <div id="result" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start"></div>
-
     </div>
 
 <script>
-// ==================== 全局核心变量定义 ====================
-let isStaffMode = false; 
-let autoRefreshTimer = null; 
-let isCatalogExpanded = false; 
-let cachedMemberData = null; 
+const APPS_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
 
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const phoneParam = urlParams.get('phone');
-    const emailParam = urlParams.get('email');
-    if (phoneParam || emailParam) {
-        if (phoneParam) { const p = document.getElementById("phone"); p.value = phoneParam; normalizePhone(p); }
-        if (emailParam) { document.getElementById("email").value = emailParam; }
-        startManualSearch();
+let currentLoggedInIdentity = ""; 
+let isStaffMode = false;
+let autoRefreshTimer = null;
+let isCatalogExpanded = false;
+let cachedMemberData = null;
+
+// ⏱️ 5分钟自动 Log out 倒计时控制
+let idleTimer = null;
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+function startIdleTimer() {
+    stopIdleTimer();
+    idleTimer = setTimeout(() => {
+        alert("⏱️ Auto Timeout: System has automatically logged out after 5 minutes of inactivity.");
+        resetPortal();
+    }, FIVE_MINUTES_MS);
+}
+
+function stopIdleTimer() {
+    if (idleTimer) clearTimeout(idleTimer);
+}
+
+function resetIdleTimerOnActivity() {
+    if (currentLoggedInIdentity) {
+        startIdleTimer();
     }
+}
+
+// 绑定全局点击/移动事件，时刻重置5分钟倒计时
+['click', 'mousemove', 'keypress', 'touchstart'].forEach(evt => {
+    window.addEventListener(evt, resetIdleTimerOnActivity);
 });
 
-// ⚡ 完美修复版：双击切换 Staff Mode 逻辑（修复关闭时 STAFF 标签残留问题 + 退出免密）
-async function triggerAdminToggle() {
-    const indicator = document.getElementById("adminIndicator");
-    const topBar = document.getElementById("topBar");
+// 输入 Amount 时的实时加分提示
+function updateAmountPreview(val) {
+    const previewEl = document.getElementById("amountPreview");
+    const ptsEl = document.getElementById("previewPts");
+    const num = parseFloat(val);
 
-    // 🌟 核心优化：如果已经是 Staff Mode，双击立刻直接退出，不需要再输入密码
-    if (isStaffMode) {
-        isStaffMode = false;
-        
-        // 立刻清除左上角和颜色
-        if (indicator) indicator.innerHTML = "";
-        if (topBar) topBar.classList.replace("bg-[#4A1D1D]", "bg-[#633A11]");
-        
-        // 关键修复：关闭时如果有会员数据，立刻刷新网络数据，没有则重绘 UI
-        if (cachedMemberData) {
-            await executeRefreshAfterRedeem();
-        } else {
-            renderAllUI(cachedMemberData);
-        }
-        alert("Switched back to Customer Mode.");
-        return; // 直接结束，不往下走密码验证
+    if (!isNaN(num) && num > 0) {
+        ptsEl.innerText = Math.round(num); // 1 RM = 1 Point
+        previewEl.classList.remove("hidden");
+    } else {
+        previewEl.classList.add("hidden");
     }
+}
 
-    // --- 以下是进入 Staff Mode 的密码验证逻辑 ---
-    const inputPasscode = prompt("B5 System: Please enter Staff Passcode to toggle mode:");
-    
-    if (inputPasscode === null) return; 
-    if (inputPasscode.trim() === "") {
-        alert("Passcode cannot be empty.");
+// 免密码登录逻辑 (兼具加分功能)
+async function handleDirectLogin() {
+    const phoneInput = document.getElementById("loginPhone");
+    normalizePhone(phoneInput);
+
+    const phone = phoneInput ? phoneInput.value.trim() : "";
+    const email = document.getElementById("loginEmail") ? document.getElementById("loginEmail").value.trim() : "";
+    const amountVal = document.getElementById("loginAmount") ? document.getElementById("loginAmount").value.trim() : "";
+    const msgEl = document.getElementById("loginMessage");
+
+    const identity = phone || email;
+
+    if (!identity) {
+        showStatusMessage(msgEl, "Please enter Phone Number or Email.", "#C5221F");
         return;
     }
 
-    const baseUrl = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec";
-    const url = `${baseUrl}?mode=verify_staff_mode&passcode=${encodeURIComponent(inputPasscode.trim())}`;
+    const amount = parseFloat(amountVal);
+    const isAddingPoints = !isNaN(amount) && amount > 0;
 
-    try {
-        console.log("Verifying staff passcode...");
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.status === "ok") {
-            isStaffMode = true; // 进入 Staff Mode
-            
-            // 展现 STAFF 视觉状态
-            if (indicator) {
-                indicator.innerHTML = "<span class='bg-rose-950/50 px-2 py-0.5 rounded text-[10px] text-rose-300 font-black animate-pulse'>STAFF</span>";
-            }
-            if (topBar) {
-                topBar.classList.replace("bg-[#633A11]", "bg-[#4A1D1D]");
-            }
-            alert("Successfully switched to Staff Mode.");
-            
-            // 自动同步最新数据
-            if (cachedMemberData) {
-                await executeRefreshAfterRedeem();
-            } else {
-                renderAllUI(cachedMemberData);
-            }
-        } else {
-            alert("Invalid Passcode! Access Denied.");
-        }
-    } catch (err) {
-        console.error("Verification error:", err);
-        alert("Network error. Failed to verify passcode.");
+    if (isAddingPoints) {
+        showStatusMessage(msgEl, `Processing Spend RM ${amount} & Logging In...`, "#633A11");
+    } else {
+        showStatusMessage(msgEl, "Accessing Portal...", "#633A11");
     }
-}
 
-function openModal(type) {
-    const modal = document.getElementById("detailsModal");
-    const container = document.getElementById("modalContainer");
-    const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody");
-    const s = cachedMemberData?.settings || {};
+    currentLoggedInIdentity = identity;
+
+    // 请求后端：支持一次性带上 &amount 进行 Points Log 写入
+    const result = await searchProfileByIdentity(currentLoggedInIdentity, true, isAddingPoints ? amount : null);
     
-    if(type === 'stamp') {
-        title.innerHTML = "📊 Stamp Card Policy";
-        body.innerHTML = `
-            <ul class="list-disc pl-4 space-y-2 font-medium text-gray-700">
-                <li class="text-red-600 font-bold">🔄 Monthly Visit Stamps reset automatically on the 1st day of every month!</li>
-                <li>Each valid counter check-in grants you 1 visit stamp.</li>
-                <li>Unlock milestone rewards when you collect 3 and 7 stamps within the calendar month.</li>
-            </ul>`;
-    } else if(type === 'tier' || type === 'referral_details') {
-        title.innerHTML = "👥 Referral Journey Milestones";
-        body.innerHTML = `
-            <div class="space-y-3">
-                <p class="font-bold text-gray-600 text-xs">Invite friends to unlock direct rewards and lifetime shop discounts:</p>
-                <div class="border-t border-gray-100 pt-2 space-y-2 text-xs">
-                    <div class="bg-[#FAF6F0] p-2 rounded-xl border border-[#EADCC9]/50">
-                        <span class="font-extrabold text-[#633A11]">👤 0-8 Invites:</span> Standard Member (0% Off)
-                    </div>
-                    <div class="bg-amber-50 p-2 rounded-xl border border-amber-200/50">
-                        <span class="font-extrabold text-amber-800">🥉 3 & 6 & 9 Invites Milestone Rewards:</span>
-                        <p class="text-gray-500 mt-0.5">🎁 3 Ref: ${s.referralMilestone3 || "-"}</p>
-                        <p class="text-gray-500">🎁 6 Ref: ${s.referralMilestone6 || "-"}</p>
-                        <p class="text-gray-500">🎁 9 Ref: ${s.referralMilestone9 || "-"}</p>
-                        <p class="text-amber-700 font-bold mt-1">✨ Hit 9 Invites to unlock Bronze Tier (5% Lifetime Discount!)</p>
-                    </div>
-                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-200/50">
-                        <span class="font-extrabold text-slate-800">🥈 20+ Invites (Silver Tier):</span> 10% Lifetime Discount
-                    </div>
-                    <div class="bg-yellow-50 p-2 rounded-xl border border-yellow-200/50">
-                        <span class="font-extrabold text-yellow-800">🥇 35+ Invites (Gold Tier):</span> 15% Lifetime Discount
-                    </div>
-                    <div class="bg-cyan-50 p-2 rounded-xl border border-cyan-200/50">
-                        <span class="font-extrabold text-cyan-800">💎 50+ Invites (Platinum Tier):</span> 20% Lifetime Discount
-                    </div>
-                </div>
-            </div>`;
+    if (result && result.status === "ok") {
+        document.getElementById("b5SecurityGate").style.display = "none";
+        
+        if (isAddingPoints) {
+            showReceipt(`Spent RM ${amount} -> Added +${Math.round(amount)} Points!`, "Staff", "Point Added!");
+        }
+
+        startIdleTimer();
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        autoRefreshTimer = setInterval(() => { silentUpdate(); }, 30000);
+    } else {
+        showStatusMessage(msgEl, "Member Record Not Found.", "#C5221F");
     }
-    modal.classList.remove("opacity-0", "pointer-events-none");
-    container.classList.remove("scale-95");
 }
 
-function closeModal() {
-    const modal = document.getElementById("detailsModal");
-    const container = document.getElementById("modalContainer");
-    modal.classList.add("opacity-0", "pointer-events-none");
-    container.classList.add("scale-95");
+function showStatusMessage(el, text, color) {
+    if (!el) return;
+    el.innerText = text;
+    el.style.color = color;
+    el.style.display = "block";
 }
 
 function toggleCatalogView() {
     isCatalogExpanded = !isCatalogExpanded;
-    if(cachedMemberData) {
-        renderAllUI(cachedMemberData);
-    }
-}
-
-function showReceipt(itemName, staffName) {
-    const notice = document.getElementById("receiptNotice");
-    document.getElementById("receiptDetails").innerHTML = `<b>Item:</b> ${itemName}<br><b>Staff:</b> ${staffName}`;
-    notice.classList.remove("opacity-0", "pointer-events-none", "translate-y-[-20px]");
-    setTimeout(closeReceipt, 5000);
-}
-
-function closeReceipt() {
-    document.getElementById("receiptNotice").classList.add("opacity-0", "pointer-events-none", "translate-y-[-20px]");
+    if(cachedMemberData) { renderAllUI(cachedMemberData); }
 }
 
 function resetPortal() {
+    stopIdleTimer();
     if(autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
     location.reload();
 }
@@ -264,19 +296,14 @@ function checkIsExpired(expiryStr) {
 }
 
 function normalizePhone(input){
+    if(!input) return;
     let phone=input.value.replace(/[^0-9]/g,"");
     if(phone.startsWith("0")) phone="6"+phone;
-    if(!phone.startsWith("60")) phone="60"+phone;
+    if(!phone.startsWith("60") && phone.startsWith("1")) phone="60" + phone;
     input.value=phone;
 }
 
-function startManualSearch() {
-    if(autoRefreshTimer) clearInterval(autoRefreshTimer);
-    search(true); 
-    autoRefreshTimer = setInterval(() => { silentUpdate(); }, 5000);
-}
-
-// 按钮状态生成器（原汁原味逻辑，适配样式）
+// 按钮状态生成器 (Staff Mode Inject)
 const renderActionBtnHtml = (isAvailable, isRedeemed, isExpired, onClickStr, uniqueId) => {
     if (isExpired) return `<span id="${uniqueId}" class="text-[10px] text-red-500 font-extrabold bg-red-50 px-2 py-1 rounded-lg border border-red-200 select-none cursor-default">Expired</span>`;
     if (isRedeemed) return `<span id="${uniqueId}" class="text-[10px] text-gray-400 font-bold bg-gray-100 px-2.5 py-1 rounded-lg select-none cursor-default">Used</span>`;
@@ -289,38 +316,99 @@ const renderActionBtnHtml = (isAvailable, isRedeemed, isExpired, onClickStr, uni
     }
 };
 
-// ==================== 会员信息主线搜索网关 ====================
-async function search(showLoading = false){
-    let phone=document.getElementById("phone").value.trim();
-    let email=document.getElementById("email").value.trim();
-    if(!phone && !email) return;
+async function searchProfileByIdentity(identity, showLoading = false, addAmount = null){
+    if(!identity) return null;
 
-    if(showLoading) {
+    if(showLoading && document.getElementById("result")) {
         document.getElementById("result").innerHTML="<div class='col-span-full text-center py-10 text-[#8C745A] font-medium'><i class='fa-solid fa-circle-notch animate-spin mr-2'></i>Loading Profile...</div>";
     }
 
-    let url="https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=member";
-    if(phone) url+="&phone="+phone;
-    if(email) url+="&email="+email;
+    let url = `${APPS_SCRIPT_WEB_APP_URL}?mode=member`;
+    if (identity.includes("@")) {
+        url += "&email=" + encodeURIComponent(identity);
+    } else {
+        url += "&phone=" + encodeURIComponent(identity);
+    }
+
+    // 如果有消费金额，带给后端写入 Points Log
+    if (addAmount !== null && addAmount > 0) {
+        url += "&amount=" + encodeURIComponent(addAmount);
+    }
 
     try {
         let res=await fetch(url);
         let data=await res.json();
-        if(data.status!=="ok") {
-            document.getElementById("result").innerHTML="<div class='col-span-full bg-white border border-[#F2E4D4] rounded-2xl p-6 text-center text-[#8C745A] premium-shadow max-w-md mx-auto'>No member record found</div>";
-            return;
+        if(data.status !== "ok") {
+            if(document.getElementById("result")) {
+                document.getElementById("result").innerHTML="<div class='col-span-full bg-white border border-[#F2E4D4] rounded-2xl p-6 text-center text-[#8C745A] premium-shadow max-w-md mx-auto'>No member record found</div>";
+            }
+            return data;
         }
 
-        cachedMemberData = data.data; 
-        document.getElementById("searchBox").style.display="none";
+        cachedMemberData = data.data;
         renderAllUI(cachedMemberData);
+        return data;
 
-    } catch(err) { console.error(err); }
+    } catch(err) { 
+        console.error("Identity query error:", err); 
+        return null;
+    }
 }
 
-// ==================== 🛠️ 全量高级感 UI 渲染处理器（电脑端多分栏布局） ====================
+async function triggerAdminToggle() {
+    const indicator = document.getElementById("adminIndicator");
+    const topBar = document.getElementById("topBar");
+
+    if (isStaffMode) {
+        isStaffMode = false;
+        if (indicator) indicator.innerHTML = "";
+        if (topBar) topBar.classList.replace("bg-[#4A1D1D]", "bg-[#633A11]");
+        
+        if (cachedMemberData) {
+            await executeRefreshAfterRedeem();
+        } else {
+            renderAllUI(cachedMemberData);
+        }
+        alert("Switched back to Customer Mode.");
+        return; 
+    }
+
+    const inputPasscode = prompt("B5 System: Please enter Staff Passcode to toggle mode:");
+    if (inputPasscode === null) return; 
+    if (inputPasscode.trim() === "") {
+        alert("Passcode cannot be empty.");
+        return;
+    }
+
+    const url = `${APPS_SCRIPT_WEB_APP_URL}?mode=verify_staff_mode&passcode=${encodeURIComponent(inputPasscode.trim())}`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === "ok") {
+            isStaffMode = true; 
+            if (indicator) indicator.innerHTML = "<span class='bg-rose-950/50 px-2 py-0.5 rounded text-[10px] text-rose-300 font-black animate-pulse'>STAFF</span>";
+            if (topBar) topBar.classList.replace("bg-[#633A11]", "bg-[#4A1D1D]");
+            alert("Successfully switched to Staff Mode.");
+            
+            if (cachedMemberData) {
+                await executeRefreshAfterRedeem();
+            } else {
+                renderAllUI(cachedMemberData);
+            }
+            startIdleTimer();
+        } else {
+            alert("Invalid Passcode! Access Denied.");
+        }
+    } catch (err) {
+        alert("Network error. Failed to verify passcode.");
+    }
+}
+
 function renderAllUI(m) {
-    // 🌟 极其重要：每次全量重绘时，强制校准左上角 STAFF 标签，防止网络刷新后状态残留
+    if (!m) return;
+
     const globalIndicator = document.getElementById("adminIndicator");
     const globalTopBar = document.getElementById("topBar");
     if (!isStaffMode && globalIndicator) {
@@ -328,19 +416,83 @@ function renderAllUI(m) {
         if (globalTopBar) globalTopBar.className = "bg-[#633A11] text-white px-5 py-4 sticky top-0 z-50 shadow-md flex justify-between items-center w-full select-none cursor-pointer transition-colors duration-300";
     }
 
-const voucherScrollBox = document.getElementById("voucherScrollContainer");
+    const voucherScrollBox = document.getElementById("voucherScrollContainer");
     const savedScrollLeft = voucherScrollBox ? voucherScrollBox.scrollLeft : 0;
 
-    const stamp = m.stamp || { current:0, limit:7 };
-    const referral = m.referral || { total:0, tier:"Member" };
+    const stamp = m.stamp || { current: 0, limit: 7 };
+    const referral = m.referral || { total: 0, tier: "Member" };
     const settings = m.settings || {};
-    const points = m.points || { balance:0, expiry:"-" };
+    const points = m.points || { balance: 0, expiry: "-" };
 
-    let tierName = "👤 Member"; let tierDiscount = "0% Discount";
-    if(referral.total >= 50) { tierName = "💎 Platinum"; tierDiscount = "20% Discount"; }
-    else if(referral.total >= 35) { tierName = "🥇 Gold"; tierDiscount = "15% Discount"; }
-    else if(referral.total >= 20) { tierName = "🥈 Silver"; tierDiscount = "10% Discount"; }
-    else if(referral.total >= 9) { tierName = "🥉 Bronze"; tierDiscount = "5% Discount"; }
+    const th3 = parseInt(settings.referralMilestone3Threshold || "1");
+    const th6 = parseInt(settings.referralMilestone6Threshold || "2");
+    const th9 = parseInt(settings.referralMilestone9Threshold || "3");
+    
+    const t10 = parseInt(settings.referralTier10Threshold || "4");
+    const t20 = parseInt(settings.referralTier20Threshold || "5");
+    const t35 = parseInt(settings.referralTier35Threshold || "6");
+    const t50 = parseInt(settings.referralTier50Threshold || "7");
+
+    let tierName = `👤 ${settings.referralTier0Name || "Member"}`;
+    let tierDiscount = `${settings.referralTier0Discount || "0%"}`; 
+    let tierRewardHtml = "";
+    
+    const pPhone = m.profile?.phone || currentLoggedInIdentity;
+
+    if (referral.total >= t50) { 
+        tierName = `💎 ${settings.referralTier50Name || "Platinum"}`;
+        tierDiscount = `${settings.referralTier50Discount || "20%"}`;
+        tierRewardHtml = `
+            <div class="mt-4 p-3 bg-black/20 rounded-xl border border-white/10 flex justify-between items-center text-left">
+                <div>
+                    <div class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">🎁 Monthly Platinum Reward</div>
+                    <div class="text-base font-black text-white mt-0.5">${settings.referralTier50Discount || "Platinum Reward"}</div>
+                </div>
+                <div id="box-tier50" class="scale-110 shrink-0">${renderActionBtnHtml(true, !!m.tier50_redeemed, false, `triggerMilestoneAction('tier50', 'Monthly Platinum Reward', 'box-tier50', '${pPhone}')`, 'btn-tier50')}</div>
+            </div>`;
+    }
+    else if (referral.total >= t35) { 
+        tierName = `🥇 ${settings.referralTier35Name || "Gold"}`;
+        tierDiscount = `${settings.referralTier35Discount || "15%"}`;
+        tierRewardHtml = `
+            <div class="mt-4 p-3 bg-black/20 rounded-xl border border-white/10 flex justify-between items-center text-left">
+                <div>
+                    <div class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">🎁 Monthly Gold Reward</div>
+                    <div class="text-base font-black text-white mt-0.5">${settings.referralTier35Discount || "Gold Reward"}</div>
+                </div>
+                <div id="box-tier35" class="scale-110 shrink-0">${renderActionBtnHtml(true, !!m.tier35_redeemed, false, `triggerMilestoneAction('tier35', 'Monthly Gold Reward', 'box-tier35', '${pPhone}')`, 'btn-tier35')}</div>
+            </div>`;
+    }
+    else if (referral.total >= t20) { 
+        tierName = `🥈 ${settings.referralTier20Name || "Silver"}`;
+        tierDiscount = `${settings.referralTier20Discount || "10%"}`; 
+        tierRewardHtml = `
+            <div class="mt-4 p-3 bg-black/20 rounded-xl border border-white/10 flex justify-between items-center text-left">
+                <div>
+                    <div class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">🎁 Monthly Silver Reward</div>
+                    <div class="text-base font-black text-white mt-0.5">${settings.referralTier20Discount || "Silver Reward"}</div>
+                </div>
+                <div id="box-tier20" class="scale-110 shrink-0">${renderActionBtnHtml(true, !!m.tier20_redeemed, false, `triggerMilestoneAction('tier20', 'Monthly Silver Reward', 'box-tier20', '${pPhone}')`, 'btn-tier20')}</div>
+            </div>`;
+    }
+    else if (referral.total >= t10) { 
+        tierName = `🥉 ${settings.referralTier10Name || "Bronze"}`;
+        tierDiscount = `${settings.referralTier10Discount || "5%"}`;
+        tierRewardHtml = `
+            <div class="mt-4 p-3 bg-black/20 rounded-xl border border-white/10 flex justify-between items-center text-left">
+                <div>
+                    <div class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">🎁 Monthly Bronze Reward</div>
+                    <div class="text-base font-black text-white mt-0.5">${settings.referralTier10Discount || "Bronze Reward"}</div>
+                </div>
+                <div id="box-tier10" class="scale-110 shrink-0">${renderActionBtnHtml(true, !!m.tier10_redeemed, false, `triggerMilestoneAction('tier10', 'Monthly Bronze Reward', 'box-tier10', '${pPhone}')`, 'btn-tier10')}</div>
+            </div>`;
+    }
+    else {
+        tierRewardHtml = `
+            <div class="mt-4 p-2 bg-black/10 rounded-xl text-center text-xs text-amber-200/60 italic">
+                Invite ${t10 - referral.total} more friends to unlock Monthly Tier Rewards!
+            </div>`;
+    }
 
     const spinExp = checkIsExpired(m.reward?.expiry);
     const bdayExp = checkIsExpired(m.birthdayReward?.expiry);
@@ -349,31 +501,67 @@ const voucherScrollBox = document.getElementById("voucherScrollContainer");
     const isStamp3UnlockedAndAvailable = (stamp.current >= 3 && !m.stamp3_redeemed);
     const isStamp7UnlockedAndAvailable = (stamp.current >= 7 && !m.stamp7_redeemed);
 
-    const isRef3UnlockedAndAvailable = (referral.total >= 3 && !m.ref3_redeemed);
-    const isRef6UnlockedAndAvailable = (referral.total >= 6 && !m.ref6_redeemed);
-    const isRef9UnlockedAndAvailable = (referral.total >= 9 && !m.ref9_redeemed);
+    const milestones = [th3, th6, th9, t10, t20, t35, t50];
 
-    const milestones = [3, 6, 9, 20, 35, 50];
+    const stampNodesHtml = Array.from({ length: stamp.limit }).map((_, i) => {
+        const stampNum = i + 1;
+        const isDone = i < stamp.current;
+        const isRewardNode = (stampNum === 3 || stampNum === 7);
+        let nodeInnerHtml = `<span>${isDone ? '☕' : stampNum}</span>`;
+        let extraNodeClass = "";
+
+        if (isRewardNode) {
+            if (stampNum === 3) {
+                if (isStamp3UnlockedAndAvailable) {
+                    nodeInnerHtml = `<span class="gift-bounce text-xl relative -top-0.5">🎁</span>`;
+                    extraNodeClass = "bg-amber-100 text-white border-none scale-125 z-20";
+                } else if (m.stamp3_redeemed) {
+                    nodeInnerHtml = `<span class="text-[10px]">☕</span>`;
+                    extraNodeClass = "bg-[#633A11] text-white";
+                } else {
+                    nodeInnerHtml = `<span class="opacity-30 text-xs">🎁</span>`;
+                    extraNodeClass = "bg-gray-100 text-gray-400 border-gray-300";
+                }
+            } else if (stampNum === 7) {
+                if (isStamp7UnlockedAndAvailable) {
+                    nodeInnerHtml = `<span class="gift-bounce text-xl relative -top-0.5">🎁</span>`;
+                    extraNodeClass = "bg-amber-100 text-white border-none scale-125 z-20";
+                } else if (m.stamp7_redeemed) {
+                    nodeInnerHtml = `<span class="text-[10px]">☕</span>`;
+                    extraNodeClass = "bg-[#633A11] text-white";
+                } else {
+                    nodeInnerHtml = `<span class="opacity-30 text-xs">🎁</span>`;
+                    extraNodeClass = "bg-gray-100 text-gray-400 border-gray-300";
+                }
+            }
+        } else {
+            extraNodeClass = isDone ? 'bg-[#633A11] text-white shadow-sm scale-110' : 'bg-white text-[#CFCFCF] border-dashed border-[#CFCFCF]';
+        }
+        return `<div class="flex flex-col items-center gap-1 z-10"><div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 border ${extraNodeClass}">${nodeInnerHtml}</div></div>`;
+    }).join("");
 
     let htmlContent = `
-        <!-- 顶部操作栏（新增了右侧的手动刷新按钮） -->
-        <div class="col-span-full flex justify-between items-center mt-2 mb-1">
+        <div class="col-span-full flex justify-between items-center mt-2">
             <button onclick="resetPortal()" class="bg-white border border-[#EADCC9] text-[#633A11] text-xs font-bold px-4 py-2 rounded-xl transition premium-shadow flex items-center gap-1.5 cursor-pointer">
-                <i class="fa-solid fa-arrow-left"></i> New Lookup
-            </button>
-            
-            <!-- 🔄 Admin 手动刷新数据组件（点一次才跑一次，绝不自动消耗） -->
-            <button id="manualRefreshBtn" onclick="executeRefreshAfterRedeem()" class="bg-white hover:bg-amber-50/50 text-[#633A11] text-[11px] font-bold px-3 py-1.5 rounded-xl border border-[#EADCC9]/60 shadow-sm transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer">
-                <div id="syncIndicator" class="w-1.5 h-1.5 bg-emerald-500 rounded-full opacity-0 transition-opacity duration-300"></div>
-                <i class="fa-solid fa-arrows-rotate text-xs"></i>
-                <span>Refresh Data</span>
+                <i class="fa-solid fa-arrow-left"></i> Logout / Exit
             </button>
         </div>
 
-        <!-- 栏目 1：会员主卡片 (在 PC 端占 1 列) -->
-        <section class="bg-[#633A11] text-[#FAF6F0] rounded-3xl p-6 premium-shadow relative overflow-hidden flex flex-col justify-between min-h-[220px] lg:col-span-1">
+        <div class="col-span-full flex justify-between items-center mt-2 mb-1 px-1">
+            <div class="text-xs text-[#8C745A] font-medium flex items-center gap-1.5">
+                <span>Account active</span>
+                <div id="syncIndicator" class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse opacity-0 transition-opacity duration-300"></div>
+            </div>
+            <button id="manualRefreshBtn" onclick="executeRefreshAfterRedeem()" class="bg-white hover:bg-amber-50/50 text-[#633A11] text-[11px] font-bold px-3 py-1.5 rounded-xl border border-[#EADCC9]/60 shadow-sm transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-arrows-rotate text-xs"></i><span>Refresh Data</span>
+            </button>
+        </div>
+
+        <!-- 👤 Profile 卡片专区 -->
+        <section onclick="openProfileModal()" class="bg-[#633A11] text-[#FAF6F0] rounded-3xl p-6 premium-shadow relative overflow-hidden flex flex-col justify-between min-h-[250px] lg:col-span-1 cursor-pointer hover:scale-[1.01] transition-transform duration-200">
             <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-[#B87E31] opacity-20 rounded-full blur-2xl"></div>
-            <div class="flex justify-between items-start z-10">
+            
+            <div class="flex justify-between items-start z-10 gap-2">
                 <div class="flex flex-col">
                     <span class="text-xs font-bold text-[#C2B2A2] tracking-widest uppercase">Available Points</span>
                     <div class="flex items-baseline gap-1.5 mt-1">
@@ -381,12 +569,17 @@ const voucherScrollBox = document.getElementById("voucherScrollContainer");
                         <span class="text-xs font-extrabold text-amber-400 uppercase tracking-wider">Pts</span>
                     </div>
                 </div>
-                <div onclick="openModal('tier')" class="bg-[#4A2B0C] px-3 py-2 rounded-xl text-right cursor-pointer hover:bg-[#3d2309] transition border border-white/5">
+                <div onclick="event.stopPropagation(); openModal('tier')" class="bg-[#4A2B0C] px-3 py-2 rounded-xl text-right cursor-pointer hover:bg-[#3d2309] transition border border-white/5 shrink-0">
                     <div class="text-xs font-black text-white tracking-wide flex items-center gap-1 justify-end">${tierName} <i class="fa-solid fa-circle-info text-[10px] text-amber-400"></i></div>
                     <div class="text-[10px] font-bold text-amber-400">${tierDiscount}</div>
                 </div>
             </div>
-            <div class="flex justify-between items-end border-t border-[#4A2B0C] pt-4 z-10 mt-6">
+
+            <div class="z-10 mt-2" onclick="event.stopPropagation();">
+                ${tierRewardHtml}
+            </div>
+
+            <div class="flex justify-between items-end border-t border-[#4A2B0C] pt-4 z-10 mt-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-[#4A2B0C] rounded-full flex items-center justify-center text-base font-bold text-amber-400">
                         ${(m.profile?.name ? m.profile.name.charAt(0).toUpperCase() : 'B')}
@@ -396,236 +589,327 @@ const voucherScrollBox = document.getElementById("voucherScrollContainer");
                         <p class="text-[11px] text-[#C2B2A2]"><i class="fa-solid fa-phone text-[10px] mr-1"></i>${m.profile?.phone || "-"}</p>
                     </div>
                 </div>
-                <div class="text-right text-[10px] text-[#C2B2A2]"><p>Valid Till: ${points.expiry || "-"}</p></div>
+                <div class="text-right text-[10px] text-[#C2B2A2] flex flex-col items-end gap-1">
+                    <span class="bg-white/10 px-2 py-0.5 rounded-md text-[9px] font-bold">View Profile <i class="fa-solid fa-chevron-right text-[8px]"></i></span>
+                    <p>Valid Till: ${points.expiry || "-"}</p>
+                </div>
             </div>
         </section>
 
-        <!-- 栏目 2：三大核心固化卡券 (在 PC 端占 2 列) -->
-        <section class="bg-white rounded-3xl p-5 border border-[#F2E4D4] premium-shadow lg:col-span-2">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="font-extrabold text-xs text-[#633A11] uppercase tracking-wider">🎁 Your Vouchers</h3>
-                <span class="text-[11px] text-[#8C745A] font-semibold md:hidden flex items-center gap-1">Swipe <i class="fa-solid fa-arrow-right text-[9px]"></i></span>
+        <!-- 🎁 优惠券专区 -->
+<section class="bg-white rounded-3xl p-5 border border-[#F2E4D4] premium-shadow lg:col-span-2">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="font-extrabold text-xs text-[#633A11] uppercase tracking-wider">🎁 Your Vouchers</h3>
+        <span class="text-[11px] text-[#8C745A] font-semibold md:hidden flex items-center gap-1">Swipe <i class="fa-solid fa-arrow-right text-[9px]"></i></span>
+    </div>
+    <div id="voucherScrollContainer" class="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-1 no-scrollbar snap-x">
+        
+        <!-- 1. SPIN 卡片 -->
+        <div class="min-w-[250px] md:min-w-0 bg-[#FAF6F0] border border-[#EADCC9] rounded-2xl p-4 flex flex-col justify-between snap-start shadow-sm">
+            <div class="flex justify-between items-start gap-2">
+                <div class="flex-1 min-w-0">
+                    <span class="text-[9px] bg-[#E8DDFF] text-[#6200EE] font-black px-2 py-0.5 rounded-md tracking-wider uppercase">SPIN</span>
+                    <h4 class="font-extrabold text-sm text-[#633A11] mt-1.5 whitespace-normal break-words leading-tight">${m.reward?.name || "Not Issued"}</h4>
+                </div>
+                <div class="w-12 h-12 shrink-0 rounded-xl bg-[#E8DDFF]/40 flex items-center justify-center text-2xl select-none">🎡</div>
             </div>
-            <div id="voucherScrollContainer" class="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto pb-1 no-scrollbar snap-x">
-                
-                <div class="min-w-[250px] md:min-w-0 bg-[#FAF6F0] border border-[#EADCC9] rounded-2xl p-4 flex flex-col justify-between snap-start shadow-sm">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="flex-1 min-w-0">
-                            <span class="text-[9px] bg-[#E8DDFF] text-[#6200EE] font-black px-2 py-0.5 rounded-md tracking-wider uppercase">SPIN</span>
-                            <h4 class="font-extrabold text-sm text-[#633A11] mt-1.5 whitespace-normal break-words leading-tight">${m.reward?.name || "Not Issued"}</h4>
-                            <p class="text-[10px] text-gray-400 font-medium mt-1">Token: ${m.reward?.token || "-"}</p>
-                        </div>
-                        <div class="w-12 h-12 shrink-0 rounded-xl bg-[#E8DDFF]/40 flex items-center justify-center text-2xl select-none ${(!spinExp && m.reward?.token && !(m.reward?.status || "").includes("Redeem")) ? 'gift-bounce' : ''}">
-                            🎡
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-2 border-t border-[#EADCC9]/40 flex justify-between items-center">
-                        <span class="text-[9px] text-gray-400">Exp: ${formatDateOnly(m.reward?.expiry)}</span>
-                        <div id="box-spin">${!(m.reward?.token) ? `<span class="text-xs text-gray-400 font-bold">-</span>` : renderActionBtnHtml(!spinExp, (m.reward?.status || "").includes("Redeem"), spinExp, `triggerPasscodeAction('spin', '${m.reward?.name}', 'box-spin', '${m.profile.phone}')`, 'btn-spin')}</div>
-                    </div>
+            
+            <!-- 🔑 新增：显示 Spin Token Code -->
+            <div class="mt-3 pt-2 border-t border-[#EADCC9]/40 flex flex-col gap-1.5">
+                <div class="flex justify-between items-center text-[10px] bg-white/60 px-2 py-1 rounded-lg border border-[#EADCC9]/50">
+                    <span class="text-gray-400 font-bold">Code:</span>
+                    <span class="font-mono font-extrabold text-[#6200EE] select-all">${m.reward?.token || "-"}</span>
                 </div>
-
-                <div class="min-w-[250px] md:min-w-0 bg-[#FAF6F0] border border-[#EADCC9] rounded-2xl p-4 flex flex-col justify-between snap-start shadow-sm">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="flex-1 min-w-0">
-                            <span class="text-[9px] bg-[#FCE8E6] text-[#C5221F] font-black px-2 py-0.5 rounded-md tracking-wider uppercase">BDAY</span>
-                            <h4 class="font-extrabold text-sm text-[#633A11] mt-1.5 whitespace-normal break-words leading-tight">${m.birthdayReward?.reward || "Not Available"}</h4>
-                            <p class="text-[10px] text-gray-400 font-medium mt-1">Token: ${m.birthdayReward?.token || "-"}</p>
-                        </div>
-                        <div class="w-12 h-12 shrink-0 rounded-xl bg-[#FCE8E6]/40 flex items-center justify-center text-2xl select-none ${(!bdayExp && m.birthdayReward?.token && !(m.birthdayReward?.status || "").includes("Redeem")) ? 'gift-bounce' : ''}">
-                            🎂
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-2 border-t border-[#EADCC9]/40 flex justify-between items-center">
-                        <span class="text-[9px] text-gray-400">Exp: ${formatDateOnly(m.birthdayReward?.expiry)}</span>
-                        <div id="box-birthday">${!(m.birthdayReward?.token) ? `<span class="text-xs text-gray-400 font-bold">-</span>` : renderActionBtnHtml(!bdayExp, (m.birthdayReward?.status || "").includes("Redeem"), bdayExp, `triggerPasscodeAction('birthday', '${m.birthdayReward?.reward}', 'box-birthday', '${m.profile.phone}')`, 'btn-birthday')}</div>
-                    </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] text-gray-400">Exp: ${formatDateOnly(m.reward?.expiry)}</span>
+                    <div id="box-spin">${!(m.reward?.token) ? `<span class="text-xs text-gray-400 font-bold">-</span>` : renderActionBtnHtml(!spinExp, (m.reward?.status || "").includes("Redeem"), spinExp, `triggerPasscodeAction('spin', '${m.reward?.name}', 'box-spin', '${pPhone}')`, 'btn-spin')}</div>
                 </div>
-
-                <div class="min-w-[250px] md:min-w-0 bg-[#FAF6F0] border border-[#EADCC9] rounded-2xl p-4 flex flex-col justify-between snap-start shadow-sm">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="flex-1 min-w-0">
-                            <span class="text-[9px] bg-[#E8F0FE] text-[#1A73E8] font-black px-2 py-0.5 rounded-md tracking-wider uppercase">PROMO</span>
-                            <h4 class="font-extrabold text-sm text-[#633A11] mt-1.5 whitespace-normal break-words leading-tight">${m.promoReward?.reward || "Not Available"}</h4>
-                            <p class="text-[10px] text-gray-400 font-medium mt-1">Token: ${m.promoReward?.token || "-"}</p>
-                        </div>
-                        <div class="w-12 h-12 shrink-0 rounded-xl bg-[#E8F0FE]/40 flex items-center justify-center text-2xl select-none ${(!promoExp && m.promoReward?.token && !(m.promoReward?.status || "").includes("Redeem")) ? 'gift-bounce' : ''}">
-                            🎉
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-2 border-t border-[#EADCC9]/40 flex justify-between items-center">
-                        <span class="text-[9px] text-gray-400">Exp: ${formatDateOnly(m.promoReward?.expiry)}</span>
-                        <div id="box-promo">${!(m.promoReward?.token) ? `<span class="text-xs text-gray-400 font-bold">-</span>` : renderActionBtnHtml(!promoExp, (m.promoReward?.status || "").includes("Redeem"), promoExp, `triggerPasscodeAction('promo', '${m.promoReward?.reward}', 'box-promo', '${m.profile.phone}')`, 'btn-promo')}</div>
-                    </div>
-                </div>
-
             </div>
-        </section>
+        </div>
 
-        <!-- 栏目 3：盖章卡活动进度 tracker (在 PC 端占 1 列) -->
+        <!-- 2. BIRTHDAY 卡片 -->
+        <div class="min-w-[250px] md:min-w-0 bg-[#FAF6F0] border border-[#EADCC9] rounded-2xl p-4 flex flex-col justify-between snap-start shadow-sm">
+            <div class="flex justify-between items-start gap-2">
+                <div class="flex-1 min-w-0">
+                    <span class="text-[9px] bg-[#FCE8E6] text-[#C5221F] font-black px-2 py-0.5 rounded-md tracking-wider uppercase">BDAY</span>
+                    <h4 class="font-extrabold text-sm text-[#633A11] mt-1.5 whitespace-normal break-words leading-tight">${m.birthdayReward?.reward || "Not Available"}</h4>
+                </div>
+                <div class="w-12 h-12 shrink-0 rounded-xl bg-[#FCE8E6]/40 flex items-center justify-center text-2xl select-none">🎂</div>
+            </div>
+            
+            <!-- 🔑 新增：显示 Birthday Token Code -->
+            <div class="mt-3 pt-2 border-t border-[#EADCC9]/40 flex flex-col gap-1.5">
+                <div class="flex justify-between items-center text-[10px] bg-white/60 px-2 py-1 rounded-lg border border-[#EADCC9]/50">
+                    <span class="text-gray-400 font-bold">Code:</span>
+                    <span class="font-mono font-extrabold text-[#C5221F] select-all">${m.birthdayReward?.token || "-"}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] text-gray-400">Exp: ${formatDateOnly(m.birthdayReward?.expiry)}</span>
+                    <div id="box-birthday">${!(m.birthdayReward?.token) ? `<span class="text-xs text-gray-400 font-bold">-</span>` : renderActionBtnHtml(!bdayExp, (m.birthdayReward?.status || "").includes("Redeem"), bdayExp, `triggerPasscodeAction('birthday', '${m.birthdayReward?.reward}', 'box-birthday', '${pPhone}')`, 'btn-birthday')}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. PROMO 卡片 -->
+        <div class="min-w-[250px] md:min-w-0 bg-[#FAF6F0] border border-[#EADCC9] rounded-2xl p-4 flex flex-col justify-between snap-start shadow-sm">
+            <div class="flex justify-between items-start gap-2">
+                <div class="flex-1 min-w-0">
+                    <span class="text-[9px] bg-[#E8F0FE] text-[#1A73E8] font-black px-2 py-0.5 rounded-md tracking-wider uppercase">PROMO</span>
+                    <h4 class="font-extrabold text-sm text-[#633A11] mt-1.5 whitespace-normal break-words leading-tight">${m.promoReward?.reward || "Not Available"}</h4>
+                </div>
+                <div class="w-12 h-12 shrink-0 rounded-xl bg-[#E8F0FE]/40 flex items-center justify-center text-2xl select-none">🎉</div>
+            </div>
+            
+            <!-- 🔑 新增：显示 Promo Token Code -->
+            <div class="mt-3 pt-2 border-t border-[#EADCC9]/40 flex flex-col gap-1.5">
+                <div class="flex justify-between items-center text-[10px] bg-white/60 px-2 py-1 rounded-lg border border-[#EADCC9]/50">
+                    <span class="text-gray-400 font-bold">Code:</span>
+                    <span class="font-mono font-extrabold text-[#1A73E8] select-all">${m.promoReward?.token || "-"}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] text-gray-400">Exp: ${formatDateOnly(m.promoReward?.expiry)}</span>
+                    <div id="box-promo">${!(m.promoReward?.token) ? `<span class="text-xs text-gray-400 font-bold">-</span>` : renderActionBtnHtml(!promoExp, (m.promoReward?.status || "").includes("Redeem"), promoExp, `triggerPasscodeAction('promo', '${m.promoReward?.reward}', 'box-promo', '${pPhone}')`, 'btn-promo')}</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+        <!-- ☕ 印章卡专区 -->
         <section class="bg-white rounded-3xl p-5 border border-[#F2E4D4] premium-shadow lg:col-span-1">
             <div class="flex justify-between items-center mb-1">
                 <h3 class="font-extrabold text-xs text-[#633A11] uppercase tracking-wider">☕ Monthly Visit Stamp</h3>
                 <button onclick="openModal('stamp')" class="text-gray-400 hover:text-[#633A11] text-xs font-semibold flex items-center gap-1 cursor-pointer">ⓘ Rules</button>
             </div>
             <div class="text-xs font-extrabold text-[#B87E31] bg-amber-50 border border-amber-200/60 rounded-xl px-3 py-2 mb-4 flex justify-between items-center">
-                <span>Progress Tracker:</span>
-                <span class="text-sm font-black">${stamp.current} / ${stamp.limit}</span>
+                <span>Progress Tracker:</span><span class="text-sm font-black">${stamp.current} / ${stamp.limit}</span>
             </div>
-
             <div class="bg-[#FAF6F0] p-4 rounded-2xl border border-[#EADCC9] mb-4">
                 <div class="flex justify-between items-center relative">
                     <div class="absolute left-2 right-2 h-[2px] bg-[#EADCC9] top-4 z-0"></div>
                     <div class="absolute left-2 h-[2px] bg-[#633A11] top-4 z-0" style="width: ${Math.min(((stamp.current - 1) / (stamp.limit - 1)) * 100, 100)}%;"></div>
-                    ${Array.from({ length: stamp.limit }).map((_, i) => {
-                        const stampNum = i + 1;
-                        const isDone = i < stamp.current;
-                        const isRewardNode = (stampNum === 3 || stampNum === 7);
-                        
-                        let nodeInnerHtml = `<span>${isDone ? '☕' : stampNum}</span>`;
-                        let extraNodeClass = "";
-
-                        if (isRewardNode) {
-                            if (stampNum === 3) {
-                                if (isStamp3UnlockedAndAvailable) {
-                                    nodeInnerHtml = `<span class="gift-bounce text-xl relative -top-0.5">🎁</span>`;
-                                    extraNodeClass = "bg-amber-100 text-white border-none scale-125 z-20";
-                                } else if (m.stamp3_redeemed) {
-                                    nodeInnerHtml = `<span class="text-[10px]">☕</span>`;
-                                    extraNodeClass = "bg-[#633A11] text-white";
-                                } else {
-                                    nodeInnerHtml = `<span class="opacity-30 text-xs">🎁</span>`;
-                                    extraNodeClass = "bg-gray-100 text-gray-400 border-gray-300";
-                                }
-                            } else if (stampNum === 7) {
-                                if (isStamp7UnlockedAndAvailable) {
-                                    nodeInnerHtml = `<span class="gift-bounce text-xl relative -top-0.5">🎁</span>`;
-                                    extraNodeClass = "bg-amber-100 text-white border-none scale-125 z-20";
-                                } else if (m.stamp7_redeemed) {
-                                    nodeInnerHtml = `<span class="text-[10px]">☕</span>`;
-                                    extraNodeClass = "bg-[#633A11] text-white";
-                                } else {
-                                    nodeInnerHtml = `<span class="opacity-30 text-xs">🎁</span>`;
-                                    extraNodeClass = "bg-gray-100 text-gray-400 border-gray-300";
-                                }
-                            }
-                        } else {
-                            extraNodeClass = isDone ? 'bg-[#633A11] text-white shadow-sm scale-110' : 'bg-white text-[#CFCFCF] border-dashed border-[#CFCFCF]';
-                        }
-
-                        return `
-                            <div class="flex flex-col items-center gap-1 z-10">
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-300 border ${extraNodeClass}">
-                                    ${nodeInnerHtml}
-                                </div>
-                            </div>`;
-                    }).join("")}
+                    ${stampNodesHtml}
                 </div>
             </div>
-
             <div class="flex flex-col gap-2">
                 <div class="flex justify-between items-center bg-[#FAF6F0] p-3 rounded-xl border border-[#EADCC9] text-xs">
                     <div>
-                        <span class="font-bold text-[#633A11] flex items-center gap-1.5">
-                            <span class="${isStamp3UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 3 Stamps Reward
-                        </span>
+                        <span class="font-bold text-[#633A11] flex items-center gap-1.5"><span class="${isStamp3UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 3 Stamps Reward</span>
                         <p class="text-[11px] text-gray-500 mt-0.5">${settings.stampReward3 || "-"}</p>
                     </div>
-                    <div id="box-stamp3">${renderActionBtnHtml(stamp.current >= 3, m.stamp3_redeemed, false, `triggerMilestoneAction('stamp3', '3 Stamps Reward', 'box-stamp3', '${m.profile.phone}')`, 'btn-stamp3')}</div>
+                    <div id="box-stamp3">${renderActionBtnHtml(stamp.current >= 3, m.stamp3_redeemed, false, `triggerMilestoneAction('stamp3', '3 Stamps Reward', 'box-stamp3', '${pPhone}')`, 'btn-stamp3')}</div>
                 </div>
                 <div class="flex justify-between items-center bg-[#FAF6F0] p-3 rounded-xl border border-[#EADCC9] text-xs">
                     <div>
-                        <span class="font-bold text-[#633A11] flex items-center gap-1.5">
-                            <span class="${isStamp7UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 7 Stamps Reward
-                        </span>
+                        <span class="font-bold text-[#633A11] flex items-center gap-1.5"><span class="${isStamp7UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 7 Stamps Reward</span>
                         <p class="text-[11px] text-gray-500 mt-0.5">${settings.stampReward7 || "-"}</p>
                     </div>
-                    <div id="box-stamp7">${renderActionBtnHtml(stamp.current >= 7, m.stamp7_redeemed, false, `triggerMilestoneAction('stamp7', '7 Stamps Reward', 'box-stamp7', '${m.profile.phone}')`, 'btn-stamp7')}</div>
+                    <div id="box-stamp7">${renderActionBtnHtml(stamp.current >= 7, m.stamp7_redeemed, false, `triggerMilestoneAction('stamp7', '7 Stamps Reward', 'box-stamp7', '${pPhone}')`, 'btn-stamp7')}</div>
                 </div>
             </div>
         </section>
 
-        <!-- 栏目 4：裂变推荐人奖励进程 (在 PC 端占 2 列) -->
+        <!-- 👥 推荐路程专区 -->
         <section class="bg-white rounded-3xl p-5 border border-[#F2E4D4] premium-shadow lg:col-span-2">
             <div class="flex justify-between items-center mb-1">
                 <h3 class="font-extrabold text-xs text-[#633A11] uppercase tracking-wider">👥 Referral Journey</h3>
                 <button onclick="openModal('referral_details')" class="text-gray-400 hover:text-[#633A11] text-xs font-semibold flex items-center gap-1 cursor-pointer">ⓘ Details</button>
             </div>
-            
             <div class="flex justify-between items-center bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 text-xs mt-2 mb-3">
                 <span class="font-bold text-emerald-800">Total Friends Invited:</span>
                 <span class="text-sm font-black text-emerald-600">${referral.total} Users</span>
             </div>
-            
             <div class="my-4 mx-1">
                 <div class="h-4 bg-gray-100 border border-gray-200/50 rounded-full overflow-hidden p-0.5 shadow-inner relative">
-                    <div class="bg-emerald-500 h-full rounded-full transition-all duration-500 shadow-sm flex items-center justify-end px-2" style="width: ${Math.min((referral.total / 50) * 100, 100)}%">
-                        ${referral.total > 4 ? `<span class="text-[9px] text-white font-black">${Math.min(Math.round((referral.total/50)*100), 100)}%</span>` : ''}
+                    <div class="bg-emerald-500 h-full rounded-full transition-all duration-500 shadow-sm flex items-center justify-end px-2" style="width: ${Math.min((referral.total / t50) * 100, 100)}%">
+                        ${referral.total > 0 ? `<span class="text-[9px] text-white font-black">${Math.min(Math.round((referral.total/t50)*100), 100)}%</span>` : ''}
                     </div>
                 </div>
                 <div class="flex justify-between items-center mt-2 px-1 text-[10px] font-extrabold">
                     ${milestones.map(num => {
                         const isReached = referral.total >= num;
-                        const lightClass = isReached 
-                            ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-100 scale-110' 
-                            : 'bg-gray-100 text-gray-400 border border-gray-200';
-                        return `
-                            <div class="flex flex-col items-center">
-                                <span class="w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${lightClass}">
-                                    ${num}
-                                </span>
-                            </div>`;
+                        const lightClass = isReached ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-100 scale-110' : 'bg-gray-100 text-gray-400 border border-gray-200';
+                        return `<div class="flex flex-col items-center"><span class="w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${lightClass}">${num}</span></div>`;
                     }).join("")}
                 </div>
             </div>
-
+            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs mt-4">
                 <div class="flex justify-between items-center p-3 bg-[#FAF6F0] border border-[#EADCC9] rounded-xl">
                     <div>
-                        <span class="font-bold text-[#633A11] flex items-center gap-1.5">
-                            <span class="${isRef3UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 3 Referrals
-                        </span>
+                        <span class="font-bold text-[#633A11] flex items-center gap-1.5"><span class="${(referral.total >= th3 && !m.ref3_redeemed) ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> ${th3} Referrals</span>
                         <p class="text-[11px] text-gray-500 mt-0.5 line-clamp-1">${settings.referralMilestone3 || "-"}</p>
                     </div>
-                    <div id="box-ref3">${renderActionBtnHtml(referral.total >= 3, m.ref3_redeemed, false, `triggerMilestoneAction('ref3', 'Referral Milestone 3', 'box-ref3', '${m.profile.phone}')`, 'btn-ref3')}</div>
+                    <div id="box-ref3">${renderActionBtnHtml(referral.total >= th3, m.ref3_redeemed, false, `triggerMilestoneAction('ref3', 'Referral Milestone 3', 'box-ref3', '${pPhone}')`, 'btn-ref3')}</div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-[#FAF6F0] border border-[#EADCC9] rounded-xl">
                     <div>
-                        <span class="font-bold text-[#633A11] flex items-center gap-1.5">
-                            <span class="${isRef6UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 6 Referrals
-                        </span>
+                        <span class="font-bold text-[#633A11] flex items-center gap-1.5"><span class="${(referral.total >= th6 && !m.ref6_redeemed) ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> ${th6} Referrals</span>
                         <p class="text-[11px] text-gray-500 mt-0.5 line-clamp-1">${settings.referralMilestone6 || "-"}</p>
                     </div>
-                    <div id="box-ref6">${renderActionBtnHtml(referral.total >= 6, m.ref6_redeemed, false, `triggerMilestoneAction('ref6', 'Referral Milestone 6', 'box-ref6', '${m.profile.phone}')`, 'btn-ref6')}</div>
+                    <div id="box-ref6">${renderActionBtnHtml(referral.total >= th6, m.ref6_redeemed, false, `triggerMilestoneAction('ref6', 'Referral Milestone 6', 'box-ref6', '${pPhone}')`, 'btn-ref6')}</div>
                 </div>
                 <div class="flex justify-between items-center p-3 bg-[#FAF6F0] border border-[#EADCC9] rounded-xl">
                     <div>
-                        <span class="font-bold text-[#633A11] flex items-center gap-1.5">
-                            <span class="${isRef9UnlockedAndAvailable ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> 9 Referrals
-                        </span>
+                        <span class="font-bold text-[#633A11] flex items-center gap-1.5"><span class="${(referral.total >= th9 && !m.ref9_redeemed) ? 'gift-bounce text-base' : 'opacity-30'}">🎁</span> ${th9} Referrals</span>
                         <p class="text-[11px] text-gray-500 mt-0.5 line-clamp-1">${settings.referralMilestone9 || "-"}</p>
                     </div>
-                    <div id="box-ref9">${renderActionBtnHtml(referral.total >= 9, m.ref9_redeemed, false, `triggerMilestoneAction('ref9', 'Referral Milestone 9', 'box-ref9', '${m.profile.phone}')`, 'btn-ref9')}</div>
+                    <div id="box-ref9">${renderActionBtnHtml(referral.total >= th9, m.ref9_redeemed, false, `triggerMilestoneAction('ref9', 'Referral Milestone 9', 'box-ref9', '${pPhone}')`, 'btn-ref9')}</div>
                 </div>
             </div>
         </section>
 
-        <!-- 栏目 5：门店积分商品兑换 Catalog (在 PC 端自适应多列平铺，手机端占 4 格) -->
+        <!-- 🛍️ 兑换商品专区 -->
         <section class="bg-white rounded-3xl p-5 border border-[#F2E4D4] premium-shadow col-span-full">
             <div class="flex justify-between items-center mb-3.5"><h3 class="font-extrabold text-xs text-[#633A11] uppercase tracking-wider">🛍️ Rewards Catalog</h3></div>
-            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="catalogGrid">
-                ${renderCatalogTier(m.catalog || [], points.balance, m.profile.phone)}
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="catalogGrid">${renderCatalogTier(m.catalog || [], points.balance, pPhone)}</div>
+        </section>
+
+        <!-- 📜 兑换历史专区 -->
+        <section class="bg-white rounded-3xl p-5 border border-[#F2E4D4] premium-shadow col-span-full">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-extrabold text-xs text-[#633A11] uppercase tracking-wider">📜 Redemption History (Last 5)</h3>
+            </div>
+            <div id="redeemHistoryContainer" class="space-y-2">
+                <!-- 历史记录列表动态生成 -->
             </div>
         </section>
     `;
     document.getElementById("result").innerHTML = htmlContent;
-
     const newVoucherScrollBox = document.getElementById("voucherScrollContainer");
-    if(newVoucherScrollBox) {
-        newVoucherScrollBox.scrollLeft = savedScrollLeft;
-    }
+    if(newVoucherScrollBox) { newVoucherScrollBox.scrollLeft = savedScrollLeft; }
+
+    // 渲染最新兑换历史
+    renderRedeemHistoryUI(m.redeemHistory || m.history || []);
 }
-// 渲染积分商品布局（融合自两用版高级版面网格，且保留了原本完整的参数调用）
+
+function openModal(type, latestSettings = null) {
+    const modal = document.getElementById("detailsModal");
+    const container = document.getElementById("modalContainer");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    
+    const s = latestSettings || cachedMemberData?.settings || {};
+    
+    if(type === 'stamp') {
+        title.innerHTML = "📊 Stamp Card Policy";
+        body.innerHTML = `
+            <ul class="list-disc pl-4 space-y-2 font-medium text-gray-700">
+                <li class="text-red-600 font-bold">🔄 Monthly Visit Stamps reset automatically on the 1st day of every month!</li>
+                <li>Each valid counter check-in grants you 1 visit stamp.</li>
+                <li>Unlock milestone rewards when you collect 3 and 7 stamps within the calendar month.</li>
+            </ul>`;
+    } else if(type === 'tier' || type === 'referral_details') {
+        
+        const th3 = parseInt(s.referralMilestone3Threshold || "3");
+        const th6 = parseInt(s.referralMilestone6Threshold || "6");
+        const th9 = parseInt(s.referralMilestone9Threshold || "9");
+
+        const limit10 = parseInt(s.referralTier10Threshold || "10");
+        const limit20 = parseInt(s.referralTier20Threshold || "20");
+        const limit35 = parseInt(s.referralTier35Threshold || "35");
+        const limit50 = parseInt(s.referralTier50Threshold || "50");
+
+        const name0  = s.referralTier0Name || "Member";
+        const name10 = s.referralTier10Name || "Bronze";
+        const name20 = s.referralTier20Name || "Silver";
+        const name35 = s.referralTier35Name || "Gold";
+        const name50 = s.referralTier50Name || "Platinum";
+
+        const disc0  = s.referralTier0Discount || "0";
+        const disc10 = s.referralTier10Discount || "5";
+        const disc20 = s.referralTier20Discount || "10";
+        const disc35 = s.referralTier35Discount || "15";
+        const disc50 = s.referralTier50Discount || "20";
+
+        title.innerHTML = "👥 Referral Journey Milestones";
+        body.innerHTML = `
+            <div class="space-y-3">
+                <p class="font-bold text-gray-600 text-xs">Invite friends to unlock direct rewards and discounts:</p>
+                <div class="border-t border-gray-100 pt-2 space-y-2 text-xs">
+                    
+                    <div class="bg-[#FAF6F0] p-2 rounded-xl border border-[#EADCC9]/50">
+                        <span class="font-extrabold text-[#633A11]">👤 0-${limit10 - 1} Invites:</span> ${name0} (${disc0}% Off)
+                    </div>
+                    
+                    <div class="bg-amber-50 p-2 rounded-xl border border-amber-200/50">
+                        <span class="font-extrabold text-amber-800">🥉 ${th3} & ${th6} & ${th9} Invites Milestone Rewards:</span>
+                        <div class="mt-1 space-y-0.5">
+                            <p class="text-gray-500">🎁 ${th3} Ref: ${s.referralMilestone3 || "-"}</p>
+                            <p class="text-gray-500">🎁 ${th6} Ref: ${s.referralMilestone6 || "-"}</p>
+                            <p class="text-gray-500">🎁 ${th9} Ref: ${s.referralMilestone9 || "-"}</p>
+                        </div>
+                        <p class="text-amber-700 font-bold mt-1">✨ Hit ${limit10} Invites to unlock ${name10} Tier (${disc10}%)</p>
+                    </div>
+                    
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-200/50">
+                        <span class="font-extrabold text-slate-800">🥈 ${limit20}+ Invites (${name20} Tier):</span> ${disc20}%
+                        <p class="text-gray-500 mt-1">🎁 Milestone Reward: ${s.referralMilestone20 || "-"}</p>
+                    </div>
+                    
+                    <div class="bg-yellow-50 p-2 rounded-xl border border-yellow-200/50">
+                        <span class="font-extrabold text-yellow-800">🥇 ${limit35}+ Invites (${name35} Tier):</span> ${disc35}%
+                        <p class="text-gray-500 mt-1">🎁 Milestone Reward: ${s.referralMilestone35 || "-"}</p>
+                    </div>
+                    
+                    <div class="bg-cyan-50 p-2 rounded-xl border border-cyan-200/50">
+                        <span class="font-extrabold text-cyan-800">💎 ${limit50}+ Invites (${name50} Tier):</span> ${disc50}%
+                        <p class="text-gray-500 mt-1">🎁 Milestone Reward: ${s.referralMilestone50 || "-"}</p>
+                    </div>
+                </div>
+            </div>`;
+    }
+    modal.classList.remove("opacity-0", "pointer-events-none");
+    container.classList.remove("scale-95");
+}
+
+function openProfileModal(latestProfile = null) {
+    const modal = document.getElementById("detailsModal");
+    const container = document.getElementById("modalContainer");
+    const title = document.getElementById("modalTitle");
+    const body = document.getElementById("modalBody");
+    
+    const p = latestProfile || cachedMemberData?.profile;
+    if (!p) return;
+    
+    title.innerHTML = "👤 My Member Profile";
+    body.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex flex-col items-center justify-center py-2 bg-[#FAF6F0] rounded-2xl border border-[#EADCC9]/50">
+                <div class="w-14 h-14 bg-[#633A11] rounded-full flex items-center justify-center text-xl font-bold text-amber-400 shadow-md">
+                    ${(p.name ? p.name.charAt(0).toUpperCase() : 'B')}
+                </div>
+                <h4 class="font-extrabold text-base text-[#633A11] mt-2">${p.name || "-"}</h4>
+                <p class="text-[11px] text-[#8C745A] font-medium">B5 Cuisine Verified Member</p>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-gray-400 font-medium"><i class="fa-solid fa-phone w-4"></i> Phone Number</span>
+                    <span class="font-bold text-[#633A11]">${p.phone || "-"}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-gray-400 font-medium"><i class="fa-solid fa-envelope w-4"></i> Email Address</span>
+                    <span class="font-bold text-[#633A11] break-all max-w-[180px] text-right">${p.email || "-"}</span>
+                </div>
+                <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span class="text-gray-400 font-medium"><i class="fa-solid fa-cake-candles w-4"></i> Birthday</span>
+                    <span class="font-bold text-[#633A11]">${p.birthday || "-"}</span>
+                </div>
+            </div>
+        </div>`;
+    
+    modal.classList.remove("opacity-0", "pointer-events-none");
+    container.classList.remove("scale-95");
+}
+
+function closeModal() {
+    const modal = document.getElementById("detailsModal");
+    const container = document.getElementById("modalContainer");
+    modal.classList.add("opacity-0", "pointer-events-none");
+    container.classList.add("scale-95");
+}
+
 function renderCatalogTier(catalog, currentPoints, phone){
     if(!catalog || !catalog.length) return "<div class='col-span-full text-center py-4 text-xs text-gray-400'>No items available</div>";
     
@@ -675,31 +959,44 @@ function renderCatalogTier(catalog, currentPoints, phone){
     return html;
 }
 
-/**
- * 🔄 精准核销后同步刷新处理器
- * 已经移除了所有自动轮询定时器。只有在店员真实核销成功后，才会被动触发运行一次。
- */
-async function executeRefreshAfterRedeem(){
-    let phone = document.getElementById("phone").value.trim();
-    let email = document.getElementById("email").value.trim();
-    if(!phone && !email) return;
+function showReceipt(itemName, staffName, customTitle = null) {
+    const notice = document.getElementById("receiptNotice");
+    if (customTitle) {
+        document.getElementById("receiptTitle").innerText = customTitle;
+    } else {
+        document.getElementById("receiptTitle").innerText = "Redeem Successful!";
+    }
+    document.getElementById("receiptDetails").innerHTML = `<b>Details:</b> ${itemName}<br><b>Operator:</b> ${staffName}`;
+    notice.classList.remove("opacity-0", "pointer-events-none", "translate-y-[-20px]");
+    setTimeout(closeReceipt, 5000);
+}
 
+function closeReceipt() {
+    document.getElementById("receiptNotice").classList.add("opacity-0", "pointer-events-none", "translate-y-[-20px]");
+}
+
+async function executeRefreshAfterRedeem() {
+    if(!currentLoggedInIdentity) return;
+    
     const syncIndicator = document.getElementById("syncIndicator");
     if(syncIndicator) {
         syncIndicator.classList.remove("opacity-0");
-        syncIndicator.classList.add("animate-pulse"); // 闪烁提示正在安全拉取最新状态
+        syncIndicator.classList.add("animate-pulse"); 
     }
 
-    let url = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec?mode=member";
-    if(phone) url += "&phone=" + encodeURIComponent(phone);
-    if(email) url += "&email=" + encodeURIComponent(email);
-
     try {
+        let url = `${APPS_SCRIPT_WEB_APP_URL}?mode=member`;
+        if (currentLoggedInIdentity.includes("@")) {
+            url += "&email=" + encodeURIComponent(currentLoggedInIdentity);
+        } else {
+            url += "&phone=" + encodeURIComponent(currentLoggedInIdentity);
+        }
+
         let res = await fetch(url);
         let data = await res.json();
+        
         if(data.status === "ok") {
             cachedMemberData = data.data; 
-            // 重新渲染整个主页，由于核销成功，此时对应按钮会自动渲染为 Used / 已过期 / 锁定，积分和印章也会实时更新
             if(cachedMemberData) { renderAllUI(cachedMemberData); }
         }
     } catch(err) { 
@@ -712,7 +1009,6 @@ async function executeRefreshAfterRedeem(){
     }
 }
 
-// ==================== 🔌 settingfix2 安全核销控制中心 ====================
 function verifyStaffAccessSecurity() {
     let backendPasscode = "B51368"; 
 
@@ -747,22 +1043,15 @@ async function triggerPasscodeAction(type, itemDisplayName, targetBoxId, phone) 
     const staffName = verifyStaffAccessSecurity();
     if(!staffName) return; 
 
-    // 1. 按钮即时变为验证状态，防止重复狂点
     containerBox.innerHTML = `<div class="text-[11px] font-bold text-gray-400"><i class="fa-solid fa-spinner animate-spin mr-1"></i>Verifying...</div>`;
-    let url = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec"
-            + "?mode=passcode_redeem"
-            + "&phone=" + encodeURIComponent(phone)
-            + "&type=" + encodeURIComponent(type)
-            + "&staff=" + encodeURIComponent(staffName);
+    let url = `${APPS_SCRIPT_WEB_APP_URL}?mode=passcode_redeem&phone=${encodeURIComponent(phone)}&type=${encodeURIComponent(type)}&staff=${encodeURIComponent(staffName)}`;
 
     try {
         let res = await fetch(url);
         let data = await res.json();
         if(data.status === "ok"){ 
-            // 先锁定前台视觉为 Used 状态，确保网络重绘间隙用户体验不卡顿
             containerBox.innerHTML = `<span class="text-[10px] text-gray-400 font-bold bg-gray-100 px-2.5 py-1 rounded-lg select-none cursor-default">Used</span>`;
             showReceipt(itemDisplayName, staffName); 
-            // 2. 核心功能触发：核销成功后自动触发全量同步，Apps Script 瞬间跑一次拉取最新数据
             await executeRefreshAfterRedeem(); 
         } 
         else { alert("❌ Backend Denied: " + data.status); containerBox.innerHTML = originalHtml; }
@@ -771,27 +1060,34 @@ async function triggerPasscodeAction(type, itemDisplayName, targetBoxId, phone) 
 
 async function triggerMilestoneAction(type, itemDisplayName, targetBoxId, phone) {
     const containerBox = document.getElementById(targetBoxId);
-    let originalHtml = containerBox.innerHTML;
-    const staffName = verifyStaffAccessSecurity();
-    if(!staffName) return;
+    if (!containerBox) return;
 
+    const staffName = verifyStaffAccessSecurity();
+    if (!staffName) return;
+
+    const originalHtml = containerBox.innerHTML;
     containerBox.innerHTML = `<div class="text-[11px] font-bold text-gray-400"><i class="fa-solid fa-spinner animate-spin mr-1"></i>Processing...</div>`;
-    const url = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec"
-              + "?mode=milestone_redeem"
-              + "&phone=" + encodeURIComponent(phone)
-              + "&type=" + encodeURIComponent(type)
-              + "&staff=" + encodeURIComponent(staffName);
+
+    const url = `${APPS_SCRIPT_WEB_APP_URL}?mode=milestone_redeem&phone=${encodeURIComponent(phone)}&type=${encodeURIComponent(type)}&staff=${encodeURIComponent(staffName)}`;
 
     try {
         let res = await fetch(url);
         let data = await res.json();
-        if(data.status === "ok"){ 
+
+        if (data.status === "ok" || data.status === "already_redeemed") {
             containerBox.innerHTML = `<span class="text-[10px] text-gray-400 font-bold bg-gray-100 px-2.5 py-1 rounded-lg select-none cursor-default">Used</span>`;
-            showReceipt(itemDisplayName, staffName); 
-            await executeRefreshAfterRedeem(); 
-        } 
-        else { alert("❌ Backend Denied: " + data.status); containerBox.innerHTML = originalHtml; }
-    } catch(err) { alert("⚠️ Connection Timeout."); containerBox.innerHTML = originalHtml; }
+            if (data.status === "ok") {
+                showReceipt(itemDisplayName, staffName);
+            }
+            await executeRefreshAfterRedeem();
+        } else {
+            alert("❌ Backend Denied: " + data.status);
+            containerBox.innerHTML = originalHtml;
+        }
+    } catch (err) {
+        alert("⚠️ Connection Timeout.");
+        containerBox.innerHTML = originalHtml;
+    }
 }
 
 async function triggerCatalogAction(rewardName, pointsValue, targetBoxId, phone) {
@@ -804,23 +1100,100 @@ async function triggerCatalogAction(rewardName, pointsValue, targetBoxId, phone)
     if(!ok) return;
 
     containerBox.innerHTML = `<div class="text-[11px] font-bold text-gray-400"><i class="fa-solid fa-spinner animate-spin mr-1"></i>Deducting...</div>`;
-    const url = "https://script.google.com/macros/s/AKfycbyw_wc2HirKbFq6Yn6sL2YC_SpXZb0J5K2Kd-k0uKYfRTwhXHg6sy_RbFzSYV6w8NCp5A/exec"
-              + "?mode=redeem"
-              + "&phone=" + encodeURIComponent(phone)
-              + "&reward=" + encodeURIComponent(rewardName)
-              + "&points=" + encodeURIComponent(pointsValue)
-              + "&staff=" + encodeURIComponent(staffName);
+    const url = `${APPS_SCRIPT_WEB_APP_URL}?mode=redeem&phone=${encodeURIComponent(phone)}&reward=${encodeURIComponent(rewardName)}&points=${encodeURIComponent(pointsValue)}&staff=${encodeURIComponent(staffName)}`;
 
     try {
         const res = await fetch(url);
         const data = await res.json();
         if(data.status === "ok"){ 
             showReceipt(`${rewardName} (Balance: ${data.remaining} Pts)`, staffName); 
-            // 积分兑换商品扣减后，自动触发同步：积分降低，不够分数的商品按钮会自动变成 "Need X Pts"
             await executeRefreshAfterRedeem(); 
         } 
         else { alert("❌ Backend Denied: " + data.status); containerBox.innerHTML = originalHtml; }
     } catch (err) { alert("⚠️ Network Error."); containerBox.innerHTML = originalHtml; }
+}
+
+// =========================================================================
+// 📜 独立渲染积分与兑换历史 (最新 5 条，严格按时间倒序)
+// =========================================================================
+function renderRedeemHistoryUI(historyData) {
+    const container = document.getElementById("redeemHistoryContainer");
+    if (!container) return;
+
+    if (!historyData || historyData.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-xs text-gray-400">No activity history found.</div>`;
+        return;
+    }
+
+    // 辅助函数：把各种格式的时间转成 Timestamp 以便排序
+    function parseDate(dateStr) {
+        if (!dateStr) return 0;
+        // 如果已经是 Date 对象
+        if (dateStr instanceof Date) return dateStr.getTime();
+        
+        let str = String(dateStr).trim();
+        // 处理 dd/MM/yyyy HH:mm:ss 格式
+        if (str.includes('/')) {
+            const parts = str.split(' ');
+            const dateParts = parts[0].split('/');
+            if (dateParts.length === 3) {
+                const day = dateParts[0];
+                const month = dateParts[1] - 1;
+                const year = dateParts[2];
+                const time = parts[1] || "00:00:00";
+                return new Date(`${year}-${month + 1}-${day} ${time}`).getTime() || new Date(str).getTime();
+            }
+        }
+        return new Date(str).getTime() || 0;
+    }
+
+    // 🎯 1. 核心改进：先把全部数据按时间【从最新到最旧】排序！
+    const sortedHistory = [...historyData].sort((a, b) => {
+        const timeA = parseDate(a.date || a.redeemedAt || a.timestamp);
+        const timeB = parseDate(b.date || b.redeemedAt || b.timestamp);
+        return timeB - timeA; // 降序：最新的排在最前面
+    });
+
+    // 🎯 2. 排序完成后，只取最新的前 5 条
+    const recentHistory = sortedHistory.slice(0, 5);
+    
+    let html = "";
+    recentHistory.forEach(item => {
+        const rawPts = item.pointsUsed !== undefined ? item.pointsUsed : (item.points !== undefined ? item.points : item.pointsAdded);
+        const pts = Number(rawPts || 0);
+        const source = String(item.rewardName || item.reward || item.title || item.source || '');
+        
+        // 判断加分、扣分还是 0 变动
+        const isAdd = source.includes("Add Point") || source.includes("Quick Add") || pts > 0;
+        const displayTitle = isAdd ? (item.rewardName || item.title || 'Add Point') : (item.rewardName || item.reward || item.title || 'Redeemed Item');
+        
+        let pointsText = "";
+        let pointsColorClass = "";
+
+        if (pts === 0) {
+            pointsText = "Free / 0 Pts";
+            pointsColorClass = "text-gray-400"; // 0 分变动用灰色
+        } else if (isAdd) {
+            pointsText = `+${Math.abs(pts)} Pts`;
+            pointsColorClass = "text-emerald-600 font-extrabold"; // 加分绿色
+        } else {
+            pointsText = `-${Math.abs(pts)} Pts`;
+            pointsColorClass = "text-[#C5221F] font-extrabold"; // 扣分红色
+        }
+
+        html += `
+            <div class="flex justify-between items-center bg-[#FAF6F0] border border-[#EADCC9] p-3 rounded-xl text-xs">
+                <div>
+                    <span class="font-bold text-[#633A11]">${displayTitle}</span>
+                    <p class="text-[10px] text-gray-400 mt-0.5">${item.date || item.redeemedAt || item.timestamp || '-'}</p>
+                </div>
+                <div class="${pointsColorClass}">
+                    ${pointsText}
+                </div>
+            </div>`;
+    });
+    
+    container.innerHTML = html;
 }
 </script>
 </body>
